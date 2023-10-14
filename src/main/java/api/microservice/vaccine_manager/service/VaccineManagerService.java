@@ -2,40 +2,47 @@ package api.microservice.vaccine_manager.service;
 
 import api.microservice.vaccine_manager.client.PatientClient;
 import api.microservice.vaccine_manager.client.VaccineClient;
-import api.microservice.vaccine_manager.entity.NurseProfessional;
+import api.microservice.vaccine_manager.entity.Patient;
 import api.microservice.vaccine_manager.entity.Vaccine;
 import api.microservice.vaccine_manager.entity.VaccineManager;
+import api.microservice.vaccine_manager.repository.VaccineManagerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
 @Service
 @Transactional
 public class VaccineManagerService {
+
     @Autowired
     private VaccineClient vaccineClient;
+
     @Autowired
     private PatientClient patientClient;
 
+    @Autowired
+    private VaccineManagerRepository vaccineManagerRepository;
 
-    public Optional<?> create(VaccineManager vaccineManager) {
-
-         VaccineManager vaccineManager1 = new VaccineManager();
-        private LocalDate vaccineDate;
-
-        private String patientId;
-        private Vaccine vaccine;
-        private List<LocalDate> listOfDoses;
-
-        private NurseProfessional nurseProfessional;
-        vaccineManager1.setPatientId(patientClient.getByIdPatient(vaccineManager.getPatientId()).get());
-        vaccineManager1.setVaccineDate(vaccineManager.getVaccineDate());
-        vaccineManager1.setVaccineDate(vaccineManager.getVaccineDate());
-
+    public VaccineManager create(VaccineManager vaccineManager) {
+        VaccineManager newVaccineManager = new VaccineManager();
+        Optional<Patient> patientOptional = patientClient.getByIdPatient(vaccineManager.getIdPatient());
+        if (patientOptional.isPresent()) {
+            String idPatient = patientOptional.get().getId();
+            newVaccineManager.setIdPatient(idPatient);
+        }
+        Optional<Vaccine> vaccineOptional = vaccineClient.getByIdVaccine(vaccineManager.getIdVaccine());
+        if (vaccineOptional.isPresent()) {
+            String idVaccine = vaccineOptional.get().getId();
+            newVaccineManager.setIdVaccine(idVaccine);
+        }
+        newVaccineManager.setVaccineDate(vaccineManager.getVaccineDate());
+        newVaccineManager.setListOfDoses(vaccineManager.getListOfDoses());
+        newVaccineManager.setIdVaccine(vaccineManager.getIdVaccine());
+        newVaccineManager.setNurseProfessional(vaccineManager.getNurseProfessional());
+        newVaccineManager.setState(vaccineManager.getState());
+        return this.vaccineManagerRepository.insert(newVaccineManager);
     }
 
 }

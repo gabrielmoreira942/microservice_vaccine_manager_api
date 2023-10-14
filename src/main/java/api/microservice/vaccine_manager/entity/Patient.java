@@ -5,24 +5,27 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Vaccine {
+public class Patient {
 
     private String id;
 
-    private String manufacturer;
+    private String firstName;
 
-    private String batch;
+    private String lastName;
 
-    private LocalDate validateDate;
+    private String gender;
 
-    private Integer amountOfDose;
+    private String cpf;
 
-    private Integer intervalBetweenDoses;
+    private String birthDate;
+
+    private Contact contact;
+
+    private Address address;
 
 }
+

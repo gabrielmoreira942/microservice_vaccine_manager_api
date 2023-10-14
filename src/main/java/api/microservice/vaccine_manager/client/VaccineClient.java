@@ -1,13 +1,16 @@
 package api.microservice.vaccine_manager.client;
 
+import api.microservice.vaccine_manager.entity.Vaccine;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
-import java.util.List;
+import java.util.Optional;
 
 
 @FeignClient(name = "vaccineClient", url = "http://localhost:8080")
 public interface VaccineClient {
-    @GetMapping("/vaccine")
-    List<?> getAllVaccines();
+
+    @GetMapping("/vaccine/{id}")
+    Optional<Vaccine> getByIdVaccine(@PathVariable String id);
 }
