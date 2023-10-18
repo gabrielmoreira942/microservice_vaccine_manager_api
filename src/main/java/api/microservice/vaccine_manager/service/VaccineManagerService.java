@@ -6,7 +6,7 @@ import api.microservice.vaccine_manager.dto.Patient;
 import api.microservice.vaccine_manager.dto.Vaccine;
 import api.microservice.vaccine_manager.dto.VaccineManagerDTO;
 import api.microservice.vaccine_manager.entity.VaccineManager;
-import api.microservice.vaccine_manager.handler.repository.VaccineManagerRepository;
+import api.microservice.vaccine_manager.repository.VaccineManagerRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
