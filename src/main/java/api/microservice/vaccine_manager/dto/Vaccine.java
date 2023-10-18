@@ -1,4 +1,4 @@
-package api.microservice.vaccine_manager.entity;
+package api.microservice.vaccine_manager.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

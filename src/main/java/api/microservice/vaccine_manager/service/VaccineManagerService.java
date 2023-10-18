@@ -2,14 +2,18 @@ package api.microservice.vaccine_manager.service;
 
 import api.microservice.vaccine_manager.client.PatientClient;
 import api.microservice.vaccine_manager.client.VaccineClient;
-import api.microservice.vaccine_manager.entity.Patient;
-import api.microservice.vaccine_manager.entity.Vaccine;
+import api.microservice.vaccine_manager.dto.Patient;
+import api.microservice.vaccine_manager.dto.Vaccine;
+import api.microservice.vaccine_manager.dto.VaccineManagerDTO;
 import api.microservice.vaccine_manager.entity.VaccineManager;
-import api.microservice.vaccine_manager.repository.VaccineManagerRepository;
+import api.microservice.vaccine_manager.handler.repository.VaccineManagerRepository;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -41,8 +45,34 @@ public class VaccineManagerService {
         newVaccineManager.setListOfDoses(vaccineManager.getListOfDoses());
         newVaccineManager.setIdVaccine(vaccineManager.getIdVaccine());
         newVaccineManager.setNurseProfessional(vaccineManager.getNurseProfessional());
-        newVaccineManager.setState(vaccineManager.getState());
-        return this.vaccineManagerRepository.insert(newVaccineManager);
+        return vaccineManagerRepository.insert(newVaccineManager);
     }
 
+    public List<VaccineManagerDTO> listVaccineManager(String state) {
+        List<VaccineManager> listOfVaccineManger = vaccineManagerRepository.findAll();
+        List<VaccineManagerDTO> listOfVaccineManagerDTO = new ArrayList<>();
+
+        listOfVaccineManger.forEach(item -> {
+            VaccineManagerDTO managerDTO = new VaccineManagerDTO();
+            BeanUtils.copyProperties(item, managerDTO);
+
+            Optional<Vaccine> vaccine = vaccineClient.getByIdVaccine(item.getIdVaccine());
+            vaccine.ifPresent(managerDTO::setVaccine);
+
+            Optional<Patient> patient = patientClient.getByIdPatient(item.getIdPatient());
+
+            if (
+                    patient.isEmpty()
+                            || !state.isEmpty()
+                                && !patient.get().getAddress().getState().equalsIgnoreCase(state)
+            ) {
+                return;
+            }
+
+            managerDTO.setPatient(patient.get());
+            listOfVaccineManagerDTO.add(managerDTO);
+        });
+
+        return listOfVaccineManagerDTO;
+    }
 }

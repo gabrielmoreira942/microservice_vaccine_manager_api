@@ -1,6 +1,6 @@
 package api.microservice.vaccine_manager.client;
 
-import api.microservice.vaccine_manager.entity.Vaccine;
+import api.microservice.vaccine_manager.dto.Vaccine;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
