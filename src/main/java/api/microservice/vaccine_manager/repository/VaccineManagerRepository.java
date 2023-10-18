@@ -6,5 +6,4 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.List;
 
 public interface VaccineManagerRepository extends MongoRepository<VaccineManager, String> {
-    List<VaccineManager> findAllByState(String estado);
 }
