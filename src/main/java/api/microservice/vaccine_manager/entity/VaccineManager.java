@@ -8,6 +8,7 @@ import org.springframework.data.annotation.Id;
 
 import javax.validation.constraints.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -19,7 +20,7 @@ public class VaccineManager {
     @Id
     private String id;
 
-    @PastOrPresent
+//    @PastOrPresent
     private LocalDate vaccineDate;
 
     @NotEmpty
@@ -28,7 +29,7 @@ public class VaccineManager {
     @NotEmpty
     private String idVaccine;
 
-    private List<LocalDate> listOfDoses;
+    private List<LocalDate> listOfDoses = new ArrayList<>();
 
     @NotNull(message = "Insira o profissional de enfermagem que aplicou a vacina")
     private NurseProfessional nurseProfessional;

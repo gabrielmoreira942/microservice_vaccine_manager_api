@@ -2,6 +2,7 @@ package api.microservice.vaccine_manager.controller;
 
 import api.microservice.vaccine_manager.dto.VaccineManagerDTO;
 import api.microservice.vaccine_manager.entity.VaccineManager;
+import api.microservice.vaccine_manager.handler.exceptions.InvalidVaccineDateException;
 import api.microservice.vaccine_manager.service.VaccineManagerService;
 import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;

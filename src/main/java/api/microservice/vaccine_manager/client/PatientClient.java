@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.Optional;
 
-@FeignClient(name = "patientClient", url = "http://localhost:8081")
+@FeignClient(name = "patientClient", url = "${api.patient}")
 public interface PatientClient {
     @GetMapping("/patient/{id}")
     Optional<Patient> getByIdPatient(@PathVariable String id);

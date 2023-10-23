@@ -1,5 +1,6 @@
 package api.microservice.vaccine_manager.handler;
 
+import api.microservice.vaccine_manager.handler.exceptions.InvalidVaccineDateException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -22,6 +23,15 @@ public class CustomExceptionHandler {
         );
 
         body.put("mensagem", errors);
+
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvalidVaccineDateException.class)
+    public ResponseEntity<Object> handleInvalidVaccineDate(InvalidVaccineDateException ex) {
+        Map<String, Object> body = new HashMap<>();
+
+        body.put("mensagem", ex.getMessage());
 
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
