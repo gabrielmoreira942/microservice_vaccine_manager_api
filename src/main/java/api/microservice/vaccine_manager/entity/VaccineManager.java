@@ -20,7 +20,7 @@ public class VaccineManager {
     @Id
     private String id;
 
-//    @PastOrPresent
+    @PastOrPresent
     private LocalDate vaccineDate;
 
     @NotEmpty

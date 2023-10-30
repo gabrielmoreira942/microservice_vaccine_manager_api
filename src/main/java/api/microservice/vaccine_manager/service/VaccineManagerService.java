@@ -7,10 +7,11 @@ import api.microservice.vaccine_manager.dto.Vaccine;
 import api.microservice.vaccine_manager.dto.VaccineManagerDTO;
 import api.microservice.vaccine_manager.entity.VaccineManager;
 import api.microservice.vaccine_manager.handler.exceptions.InvalidVaccineDateException;
+import api.microservice.vaccine_manager.handler.exceptions.BadRequestException;
+import api.microservice.vaccine_manager.handler.exceptions.NotFoundException;
 import api.microservice.vaccine_manager.repository.VaccineManagerRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,20 +51,6 @@ public class VaccineManagerService {
             Vaccine vaccine = vaccineOptional.get();
             String idVaccine = vaccine.getId();
             newVaccineManager.setIdVaccine(idVaccine);
-
-
-            // ******** MOVER VALIDAÇÂO PARA O PUT ********* //
-//            Integer vaccineInterval = vaccine.getIntervalBetweenDoses();
-//            LocalDate vaccineValidate = vaccine.getValidateDate();
-
-            // Se a data atual for maior que a data de validade a gente estoura a exception
-            // Se a data da vacinação for antes que a data da ultima vacina mais o intervalo estoura a exception também
-
-//            LocalDate lastVacination = vaccineManager.getListOfDoses().get(vaccineManager.getListOfDoses().size() - 1);
-//            if (
-//                    LocalDate.now().isAfter(vaccineValidate)
-//                            || (vaccineManager.getVaccineDate().isBefore(lastVacination.plusDays(vaccineInterval)))
-//            ) throw new InvalidVaccineDateException();
         }
 
         newVaccineManager.setIdVaccine(vaccineManager.getIdVaccine());
@@ -103,5 +90,85 @@ public class VaccineManagerService {
         });
 
         return listOfVaccineManagerDTO;
+    }
+
+    public VaccineManagerDTO update(String id, VaccineManager vaccineManager) throws InvalidVaccineDateException, NotFoundException, BadRequestException {
+        Optional<VaccineManager> storedVaccineManagerOptional = vaccineManagerRepository.findById(id);
+
+        if (storedVaccineManagerOptional.isEmpty()) {
+            throw new NotFoundException("Registro da vacinação não foi encontrado.");
+        }
+
+        VaccineManager storedVaccineManager = storedVaccineManagerOptional.get();
+        Optional<Vaccine> vaccineOptional = vaccineClient.getByIdVaccine(vaccineManager.getIdVaccine());
+        Optional<Vaccine> oldVaccineOptional = vaccineClient.getByIdVaccine(storedVaccineManager.getIdVaccine());
+        Optional<Patient> patientOptional = patientClient.getByIdPatient(vaccineManager.getIdPatient());
+
+        if (vaccineOptional.isEmpty() || !(vaccineOptional.get() instanceof Vaccine)) {
+            throw new NotFoundException("Vacina não encontrada");
+        } else if (patientOptional.isEmpty()) {
+            throw new NotFoundException("Paciente não encontrado");
+        } else if (oldVaccineOptional.isEmpty()) {
+            throw new NotFoundException("Vacina antiga não encontrada");
+        }
+
+        if (storedVaccineManager.getListOfDoses().size() <= 0) {
+            throw new BadRequestException("Você não possui registros a serem removidos.");
+        }
+
+        Vaccine vaccine = vaccineOptional.get();
+        Integer vaccineInterval = vaccine.getIntervalBetweenDoses();
+        LocalDate vaccineValidate = vaccine.getValidateDate();
+        int lastAmountOfDoses = storedVaccineManager.getListOfDoses().size() - 1;
+        LocalDate lastVacinationPlusDays = storedVaccineManager.getListOfDoses().get(lastAmountOfDoses).plusDays(vaccineInterval);
+        LocalDate vaccineDate = vaccineManager.getVaccineDate();
+
+        if (!oldVaccineOptional.get().getManufacturer().equals(vaccine.getManufacturer())) {
+            throw new BadRequestException("A vacina não pode ser de fabricantes diferentes.");
+        }
+
+        if (
+            LocalDate.now().isAfter(vaccineValidate)
+            || (vaccineDate.isBefore(lastVacinationPlusDays))
+        ) throw new InvalidVaccineDateException();
+
+        if (storedVaccineManager.getListOfDoses().size() >= vaccine.getAmountOfDose()) {
+            throw new InvalidVaccineDateException();
+        }
+
+        storedVaccineManager.setVaccineDate(vaccineManager.getVaccineDate());
+        storedVaccineManager.setNurseProfessional(vaccineManager.getNurseProfessional());
+
+        if (!vaccineDate.isEqual(lastVacinationPlusDays)) {
+            storedVaccineManager.getListOfDoses().add(vaccineManager.getVaccineDate());
+        }
+
+        VaccineManagerDTO vaccineManagerDTO = new VaccineManagerDTO();
+        BeanUtils.copyProperties(storedVaccineManager, vaccineManagerDTO);
+
+        vaccineManagerDTO.setPatient(patientOptional.get());
+        vaccineManagerDTO.setVaccine(vaccineOptional.get());
+
+        vaccineManagerRepository.save(storedVaccineManager);
+        return vaccineManagerDTO;
+    }
+
+    public VaccineManager removeLastVaccination(String id) throws NotFoundException, BadRequestException {
+        Optional<VaccineManager> vaccineManagerOptional = vaccineManagerRepository.findById(id);
+
+        if (vaccineManagerOptional.isEmpty()) {
+            throw new NotFoundException("Registro da vacinação não foi encontrado.");
+        }
+        VaccineManager vaccineManager = vaccineManagerOptional.get();
+
+        int lastVaccineDose = vaccineManager.getListOfDoses().size();
+
+        if (lastVaccineDose <= 0) {
+            throw new BadRequestException("Você não possui registros a serem removidos.");
+        }
+
+        vaccineManager.getListOfDoses().remove(lastVaccineDose - 1);
+
+        return  vaccineManagerRepository.save(vaccineManager);
     }
 }

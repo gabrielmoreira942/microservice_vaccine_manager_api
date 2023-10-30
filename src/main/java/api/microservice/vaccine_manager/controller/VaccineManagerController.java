@@ -2,7 +2,9 @@ package api.microservice.vaccine_manager.controller;
 
 import api.microservice.vaccine_manager.dto.VaccineManagerDTO;
 import api.microservice.vaccine_manager.entity.VaccineManager;
+import api.microservice.vaccine_manager.handler.exceptions.BadRequestException;
 import api.microservice.vaccine_manager.handler.exceptions.InvalidVaccineDateException;
+import api.microservice.vaccine_manager.handler.exceptions.NotFoundException;
 import api.microservice.vaccine_manager.service.VaccineManagerService;
 import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,5 +39,18 @@ public class VaccineManagerController {
                 .buildAndExpand(createdVaccineRegister.getId())
                 .toUri();
         return ResponseEntity.created(location).body(createdVaccineRegister);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<VaccineManagerDTO> update(
+            @PathVariable String id,
+            @RequestBody @Valid VaccineManager vaccineManager
+    ) throws InvalidVaccineDateException, NotFoundException, BadRequestException {
+        return ResponseEntity.ok(vaccineManagerService.update(id, vaccineManager));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<VaccineManager> removeLastVaccination(@PathVariable String id) throws NotFoundException, BadRequestException {
+        return ResponseEntity.ok(vaccineManagerService.removeLastVaccination(id));
     }
 }
