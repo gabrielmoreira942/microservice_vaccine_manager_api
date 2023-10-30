@@ -4,8 +4,6 @@ import feign.FeignException;
 import feign.Response;
 import feign.codec.ErrorDecoder;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 public class CustomPatientErrorDecode implements ErrorDecoder {
 

@@ -6,8 +6,8 @@ import api.microservice.vaccine_manager.dto.Patient;
 import api.microservice.vaccine_manager.dto.Vaccine;
 import api.microservice.vaccine_manager.dto.VaccineManagerDTO;
 import api.microservice.vaccine_manager.entity.VaccineManager;
-import api.microservice.vaccine_manager.handler.exceptions.InvalidVaccineDateException;
 import api.microservice.vaccine_manager.handler.exceptions.BadRequestException;
+import api.microservice.vaccine_manager.handler.exceptions.InvalidVaccineDateException;
 import api.microservice.vaccine_manager.handler.exceptions.NotFoundException;
 import api.microservice.vaccine_manager.repository.VaccineManagerRepository;
 import org.springframework.beans.BeanUtils;
@@ -75,12 +75,10 @@ public class VaccineManagerService {
 
             Optional<Patient> patient = patientClient.getByIdPatient(item.getIdPatient());
 
-            LocalDate lastVaccine = managerDTO.getListOfDoses().get(managerDTO.getListOfDoses().size() - 1);
             if (
                     patient.isEmpty()
                             || (!state.isEmpty()
                                 && !patient.get().getAddress().getState().equalsIgnoreCase(state))
-//                            || lastVaccine.plusDays(vaccine.get().getIntervalBetweenDoses()).isAfter(LocalDate.now())
             ) {
                 return;
             }
