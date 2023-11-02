@@ -26,6 +26,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/vaccine-manager")
 public class VaccineManagerController {
+
     @Autowired
     private VaccineManagerService vaccineManagerService;
 
@@ -34,6 +35,14 @@ public class VaccineManagerController {
             @RequestParam(value = "state", required = false, defaultValue = "") String state
     ) {
         List<VaccineManagerDTO> vaccineManagerList = vaccineManagerService.listVaccineManager(state);
+        return ResponseEntity.ok(vaccineManagerList);
+    }
+
+    @GetMapping("/overdue")
+    public ResponseEntity<List<VaccineManagerDTO>> getAllVaccineOverdue(
+            @RequestParam(value = "state", required = false, defaultValue = "") String state
+    ) {
+        List<VaccineManagerDTO> vaccineManagerList = vaccineManagerService.filterVaccinesOverdue(state);
         return ResponseEntity.ok(vaccineManagerList);
     }
 
