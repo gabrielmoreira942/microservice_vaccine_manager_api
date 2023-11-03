@@ -46,6 +46,15 @@ public class VaccineManagerController {
         return ResponseEntity.ok(vaccineManagerList);
     }
 
+    @GetMapping("/manufacturer/{manufacturer}")
+    public ResponseEntity<List<VaccineManagerDTO>> getAllVaccinesByManufacturer(
+            @RequestParam(value = "state", required = false, defaultValue = "") String state,
+            @PathVariable String manufacturer
+    ) {
+        List<VaccineManagerDTO> vaccineManagerList = vaccineManagerService.filterVaccinesByManufacturer(manufacturer, state);
+        return ResponseEntity.ok(vaccineManagerList);
+    }
+
     @PostMapping
     public ResponseEntity<VaccineManager> create(@RequestBody @Valid VaccineManager vaccineManager) {
         VaccineManager createdVaccineRegister = vaccineManagerService.create(vaccineManager);

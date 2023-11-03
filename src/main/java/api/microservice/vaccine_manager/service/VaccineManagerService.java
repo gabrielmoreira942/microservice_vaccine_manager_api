@@ -147,13 +147,41 @@ public class VaccineManagerService {
         listOfVaccineManagerDTO.forEach(
                 vaccineManagerDTO -> {
                     Vaccine vaccine = vaccineManagerDTO.getVaccine();
-                    LocalDate lastVaccinationPlusDays = vaccineManagerDTO.getListOfDoses().get(vaccineManagerDTO.getListOfDoses().size() - 1).plusDays(vaccine.getIntervalBetweenDoses());
+                    int sizeOfDoses = (vaccineManagerDTO.getListOfDoses().size() > 0) ? vaccineManagerDTO.getListOfDoses().size() : 1;
+                    List<LocalDate> lastVaccinationPlusDays = vaccineManagerDTO.getListOfDoses();
                     try {
-                        verifyIfVaccineDateIsBeforeLastVaccinationPlusDays(vaccine.getValidateDate(), LocalDate.now(),lastVaccinationPlusDays);
+                        if (lastVaccinationPlusDays.size() <= 0) {
+                            return;
+                        }
+
+                        verifyIfVaccineDateIsBeforeLastVaccinationPlusDays(
+                                vaccine.getValidateDate(),
+                                LocalDate.now(),
+                                lastVaccinationPlusDays.get(sizeOfDoses - 1).plusDays(vaccine.getIntervalBetweenDoses())
+                        );
                         verifyIfListOfDosesIsGreaterOfAmountOfDoses(vaccineManagerDTO.getListOfDoses().size(), vaccine);
                     } catch (InvalidVaccineDateException e) {
                         return;
                     }
+                    returnedOfVaccineManagerDTO.add(vaccineManagerDTO);
+                }
+        );
+
+        return returnedOfVaccineManagerDTO;
+    }
+    public List<VaccineManagerDTO> filterVaccinesByManufacturer(String manufacturer, String state) {
+        List<VaccineManager> allVaccinesManager = vaccineManagerRepository.findAll();
+        List<VaccineManagerDTO> listOfVaccineManagerDTO = filterVaccineManager(state, allVaccinesManager);
+        List<VaccineManagerDTO> returnedOfVaccineManagerDTO = new ArrayList<>();
+
+        listOfVaccineManagerDTO.forEach(
+                vaccineManagerDTO -> {
+                    Vaccine vaccine = vaccineManagerDTO.getVaccine();
+
+                    if (!vaccine.getManufacturer().equalsIgnoreCase(manufacturer)) {
+                        return;
+                    }
+
                     returnedOfVaccineManagerDTO.add(vaccineManagerDTO);
                 }
         );
@@ -172,11 +200,11 @@ public class VaccineManagerService {
             vaccine.ifPresent(managerDTO::setVaccine);
 
             Optional<Patient> patient = patientClient.getByIdPatient(item.getIdPatient());
-
+            String patientState = patient.get().getAddress().getState();
             if (
                     patient.isEmpty()
                             || (!state.isEmpty()
-                            && !patient.get().getAddress().getState().equalsIgnoreCase(state))
+                            && !patientState.equalsIgnoreCase(state))
             ) {
                 return;
             }
