@@ -229,4 +229,31 @@ public class VaccineManagerService {
             throw new InvalidVaccineDateException();
         }
     }
+
+    public List<VaccineManagerDTO> getAllVaccinesByPatientId(String patientId) throws NotFoundException {
+        Optional<List<VaccineManager>> vaccineManagerOptional = vaccineManagerRepository.findAllByIdPatient(patientId);
+
+        if (vaccineManagerOptional.isEmpty()) {
+            throw new NotFoundException("Paciente não encontrado");
+        }
+
+        List<VaccineManagerDTO> listOfVaccineManagerDTO = new ArrayList<>();
+        vaccineManagerOptional.get().forEach(vaccineManager -> {
+            Optional<Vaccine> vaccineOptional = vaccineClient.getByIdVaccine(vaccineManager.getIdVaccine());
+            Optional<Patient> patientOptional = patientClient.getByIdPatient(vaccineManager.getIdPatient());
+
+            listOfVaccineManagerDTO.add(
+                    new VaccineManagerDTO(
+                        vaccineManager.getId(),
+                        vaccineManager.getVaccineDate(),
+                        patientOptional.get(),
+                        vaccineOptional.get(),
+                        vaccineManager.getListOfDoses(),
+                        vaccineManager.getNurseProfessional()
+                    )
+            );
+        });
+
+        return listOfVaccineManagerDTO;
+    }
 }

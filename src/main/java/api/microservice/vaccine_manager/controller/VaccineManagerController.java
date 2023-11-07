@@ -55,6 +55,12 @@ public class VaccineManagerController {
         return ResponseEntity.ok(vaccineManagerList);
     }
 
+    @GetMapping("/patient/{patientId}")
+    public ResponseEntity<List<VaccineManagerDTO>> listVaccinesByPatientId(@PathVariable String patientId) throws NotFoundException {
+        List<VaccineManagerDTO> vaccineManagerList = vaccineManagerService.getAllVaccinesByPatientId(patientId);
+        return ResponseEntity.ok(vaccineManagerList);
+    }
+
     @PostMapping
     public ResponseEntity<VaccineManager> create(@RequestBody @Valid VaccineManager vaccineManager) {
         VaccineManager createdVaccineRegister = vaccineManagerService.create(vaccineManager);
