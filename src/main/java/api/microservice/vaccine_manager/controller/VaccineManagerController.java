@@ -31,7 +31,7 @@ public class VaccineManagerController {
     private VaccineManagerService vaccineManagerService;
 
     @GetMapping
-    public ResponseEntity<List<VaccineManagerDTO>> list(
+    public ResponseEntity<List<VaccineManagerDTO>> getAll(
             @RequestParam(value = "state", required = false, defaultValue = "") String state
     ) {
         List<VaccineManagerDTO> vaccineManagerList = vaccineManagerService.listVaccineManager(state);
