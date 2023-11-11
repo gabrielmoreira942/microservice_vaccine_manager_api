@@ -13,7 +13,6 @@ import api.microservice.vaccine_manager.entity.VaccineManager;
 import api.microservice.vaccine_manager.service.VaccineManagerService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -156,12 +155,6 @@ class VaccineManagerControllerTest {
     @Test
     @DisplayName("Deve criar um registro de Patient e retorna os valores no corpo")
     void should_createPatientRegistered_ExpectedCreated() throws Exception {
-        VaccineManager vaccineManager = new VaccineManager();
-        vaccineManager.setIdVaccine("idtestevaccine");
-        vaccineManager.setIdPatient("idtestepatient");
-        vaccineManager.setVaccineDate(LocalDate.of(2023, 11, 9));
-        vaccineManager.setNurseProfessional(new NurseProfessional("Joãozinho", "529.876.140-20"));
-
         Patient mockPatient = new Patient();
         mockPatient.setId("idtestepatient");
         when(patientClient.getByIdPatient("idtestepatient")).thenReturn(Optional.of(mockPatient));
@@ -169,6 +162,13 @@ class VaccineManagerControllerTest {
         Vaccine mockVaccine = new Vaccine();
         mockVaccine.setId("idtestevaccine");
         when(vaccineClient.getByIdVaccine("idtestevaccine")).thenReturn(Optional.of(mockVaccine));
+
+        VaccineManager vaccineManager = new VaccineManager();
+        vaccineManager.setId("ajksdii2jkksdkwkejwjb4");
+        vaccineManager.setIdVaccine("idtestevaccine");
+        vaccineManager.setIdPatient("idtestepatient");
+        vaccineManager.setVaccineDate(LocalDate.of(2023, 11, 9));
+        vaccineManager.setNurseProfessional(new NurseProfessional("Joãozinho", "529.876.140-20"));
 
         when(vaccineManagerService.create(any(VaccineManager.class))).thenReturn(vaccineManager);
 
@@ -178,10 +178,12 @@ class VaccineManagerControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                 ).andExpect(MockMvcResultMatchers.status().isCreated()).andReturn().getResponse();
 
-        VaccineManagerDTO returnedVaccineManagerDTO = JsonHelper.toObject(response.getContentAsByteArray(), VaccineManagerDTO.class);
-        System.out.println("Bugou: " + returnedVaccineManagerDTO);
-        assertNotNull(returnedVaccineManagerDTO.getListOfDoses());
-        assertNotNull(returnedVaccineManagerDTO.getNurseProfessional());
-        assertNotNull(returnedVaccineManagerDTO.getVaccineDate());
+        VaccineManager returnedVaccineManager = JsonHelper.toObject(response.getContentAsByteArray(), VaccineManager.class);
+        assertNotNull(returnedVaccineManager.getId());
+        assertNotNull(returnedVaccineManager.getIdVaccine());
+        assertNotNull(returnedVaccineManager.getIdPatient());
+        assertNotNull(returnedVaccineManager.getListOfDoses());
+        assertNotNull(returnedVaccineManager.getNurseProfessional());
+        assertNotNull(returnedVaccineManager.getVaccineDate());
     }
 }
