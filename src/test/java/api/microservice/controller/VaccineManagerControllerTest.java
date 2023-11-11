@@ -1,15 +1,19 @@
 package api.microservice.controller;
 
 import api.microservice.vaccine_manager.VaccineManagerApplication;
+import api.microservice.vaccine_manager.client.PatientClient;
+import api.microservice.vaccine_manager.client.VaccineClient;
 import api.microservice.vaccine_manager.dto.Patient;
 import api.microservice.vaccine_manager.dto.Vaccine;
 import api.microservice.vaccine_manager.dto.VaccineManagerDTO;
 import api.microservice.vaccine_manager.entity.Address;
 import api.microservice.vaccine_manager.entity.Contact;
 import api.microservice.vaccine_manager.entity.NurseProfessional;
+import api.microservice.vaccine_manager.entity.VaccineManager;
 import api.microservice.vaccine_manager.service.VaccineManagerService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,7 +21,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import uti.JsonHelper;
 
@@ -25,21 +28,33 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 @SpringBootTest(classes = VaccineManagerApplication.class)
 @AutoConfigureMockMvc
 class VaccineManagerControllerTest {
 
+    public static final String RESOURCE_URL = "/vaccine-manager";
     @Autowired
     MockMvc mockMvc;
 
     @MockBean
     VaccineManagerService vaccineManagerService;
+
+    @MockBean
+    VaccineClient vaccineClient;
+
+    @MockBean
+    PatientClient patientClient;
 
     @Test
     @DisplayName("Deve retornar todos os pacientes registrados sem filtro de estado")
@@ -72,7 +87,7 @@ class VaccineManagerControllerTest {
 
         when(vaccineManagerService.listVaccineManager(state)).thenReturn(vaccineManagerDTOList);
 
-        MockHttpServletResponse response = mockMvc.perform(MockMvcRequestBuilders.get("/vaccine-manager"))
+        MockHttpServletResponse response = mockMvc.perform(get(RESOURCE_URL))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.length()").value(1))
@@ -126,7 +141,7 @@ class VaccineManagerControllerTest {
 
         when(vaccineManagerService.listVaccineManager(state)).thenReturn(vaccineManagerDTOList);
 
-        MockHttpServletResponse response = mockMvc.perform(MockMvcRequestBuilders.get("/vaccine-manager?state=Bahia"))
+        MockHttpServletResponse response = mockMvc.perform(get(RESOURCE_URL + "?state=Bahia"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn().getResponse();
@@ -138,5 +153,35 @@ class VaccineManagerControllerTest {
         verify(vaccineManagerService, times(1)).listVaccineManager(state);
     }
 
+    @Test
+    @DisplayName("Deve criar um registro de Patient e retorna os valores no corpo")
+    void should_createPatientRegistered_ExpectedCreated() throws Exception {
+        VaccineManager vaccineManager = new VaccineManager();
+        vaccineManager.setIdVaccine("idtestevaccine");
+        vaccineManager.setIdPatient("idtestepatient");
+        vaccineManager.setVaccineDate(LocalDate.of(2023, 11, 9));
+        vaccineManager.setNurseProfessional(new NurseProfessional("Joãozinho", "529.876.140-20"));
 
+        Patient mockPatient = new Patient();
+        mockPatient.setId("idtestepatient");
+        when(patientClient.getByIdPatient("idtestepatient")).thenReturn(Optional.of(mockPatient));
+
+        Vaccine mockVaccine = new Vaccine();
+        mockVaccine.setId("idtestevaccine");
+        when(vaccineClient.getByIdVaccine("idtestevaccine")).thenReturn(Optional.of(mockVaccine));
+
+        when(vaccineManagerService.create(any(VaccineManager.class))).thenReturn(vaccineManager);
+
+        MockHttpServletResponse response = mockMvc.perform(
+                post(RESOURCE_URL)
+                        .content(JsonHelper.toJson(vaccineManager))
+                        .contentType(MediaType.APPLICATION_JSON)
+                ).andExpect(MockMvcResultMatchers.status().isCreated()).andReturn().getResponse();
+
+        VaccineManagerDTO returnedVaccineManagerDTO = JsonHelper.toObject(response.getContentAsByteArray(), VaccineManagerDTO.class);
+        System.out.println("Bugou: " + returnedVaccineManagerDTO);
+        assertNotNull(returnedVaccineManagerDTO.getListOfDoses());
+        assertNotNull(returnedVaccineManagerDTO.getNurseProfessional());
+        assertNotNull(returnedVaccineManagerDTO.getVaccineDate());
+    }
 }

@@ -18,6 +18,10 @@ public class JsonHelper {
         return null;
     }
 
+    public static byte[] toJson(Object object) throws IOException {
+        return mapper.writeValueAsBytes(object);
+    }
+
     private static ObjectMapper createObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
