@@ -13,6 +13,7 @@ import api.microservice.vaccine_manager.entity.VaccineManager;
 import api.microservice.vaccine_manager.handler.exceptions.BadRequestException;
 import api.microservice.vaccine_manager.handler.exceptions.NotFoundException;
 import api.microservice.vaccine_manager.service.VaccineManagerService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -437,4 +438,76 @@ class VaccineManagerControllerTest {
         mockMvc.perform(patch(RESOURCE_URL + "/" + idVaccineManager))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    @DisplayName("Deve atualizar um registro de Paciente")
+    void should_updateVaccineManagerRegister() throws Exception {
+        Patient patient = new Patient();
+        patient.setId("testeId");
+        patient.setFirstName("Ivan");
+        patient.setLastName("Romão");
+        patient.setBirthDate(String.valueOf(LocalDate.of(2023, 3, 10)));
+        patient.setGender("M");
+        patient.setCpf("76824616672");
+
+        Address address = new Address();
+        address.setNumber("123");
+        address.setNeighborhood("Sample Neighborhood");
+        address.setCounty("Sample County");
+        address.setZipCode("12345");
+        address.setState("Sample State");
+        address.setStreet("Sample Street");
+
+        Contact contact = new Contact();
+        contact.setTelephone("(71) 9456-7890");
+        contact.setWhatsapp("(71) 9456-7890");
+        contact.setEmail("test@example.com");
+
+        patient.setAddress(address);
+        patient.setContact(contact);
+
+        Vaccine vaccine = new Vaccine();
+        vaccine.setId("13123asdas");
+        vaccine.setBatch("Astrazenica");
+        vaccine.setAmountOfDose(2);
+        vaccine.setIntervalBetweenDoses(30);
+        LocalDate validateDate = LocalDate.now().plusYears(2);
+        vaccine.setValidateDate(validateDate);
+
+        VaccineManager vaccineManager = new VaccineManager();
+        vaccineManager.setId("asdasdsadasdasda");
+        vaccineManager.setIdVaccine(vaccine.getId());
+        vaccineManager.setIdPatient(patient.getId());
+        vaccineManager.setNurseProfessional(new NurseProfessional("Joãozinho", "529.876.140-20"));
+        vaccineManager.setVaccineDate(LocalDate.of(2023, 11, 9));
+
+        VaccineManagerDTO vaccineManagerDTO = new VaccineManagerDTO();
+        vaccineManagerDTO.setId(vaccineManager.getId());
+        vaccineManagerDTO.setVaccineDate(vaccineManager.getVaccineDate());
+        vaccineManagerDTO.setNurseProfessional(vaccineManager.getNurseProfessional());
+        vaccineManagerDTO.setPatient(patient);
+        vaccineManagerDTO.setVaccine(vaccine);
+
+        when(vaccineManagerService.update(
+                vaccineManager.getId(),
+                vaccineManager)
+        ).thenReturn(vaccineManagerDTO);
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        MockHttpServletResponse response = mockMvc.perform(
+                put(RESOURCE_URL + "/" + vaccineManagerDTO.getId())
+                        .content(JsonHelper.toJson(vaccineManager))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.vaccineDate").value(vaccineManagerDTO.getVaccineDate().toString()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.patient").isNotEmpty())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.vaccine").isNotEmpty())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.nurseProfessional").value(vaccineManager.getNurseProfessional()))
+                .andReturn().getResponse();
+
+        verify(vaccineManagerService, times(1)).update(vaccineManagerDTO.getId(), vaccineManager);
+    }
+
 }
