@@ -137,7 +137,7 @@ public class VaccineManagerService {
 
         vaccineManager.getListOfDoses().remove(lastVaccineDose - 1);
 
-        return  vaccineManagerRepository.save(vaccineManager);
+        return vaccineManagerRepository.save(vaccineManager);
     }
 
     public List<VaccineManagerDTO> filterVaccinesOverdue(String state) {
