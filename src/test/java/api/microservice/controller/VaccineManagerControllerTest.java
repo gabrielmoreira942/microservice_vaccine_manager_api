@@ -10,10 +10,13 @@ import api.microservice.vaccine_manager.entity.Address;
 import api.microservice.vaccine_manager.entity.Contact;
 import api.microservice.vaccine_manager.entity.NurseProfessional;
 import api.microservice.vaccine_manager.entity.VaccineManager;
+import api.microservice.vaccine_manager.handler.exceptions.BadRequestException;
+import api.microservice.vaccine_manager.handler.exceptions.NotFoundException;
 import api.microservice.vaccine_manager.service.VaccineManagerService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,12 +34,16 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(classes = VaccineManagerApplication.class)
 @AutoConfigureMockMvc
@@ -71,6 +78,7 @@ class VaccineManagerControllerTest {
         vaccine.setIntervalBetweenDoses(30);
         LocalDate validateDate = LocalDate.now().plusYears(2);
         vaccine.setValidateDate(validateDate);
+        vaccine.setManufacturer("Test");
         List<LocalDate> localDates = new ArrayList<>();
         LocalDate dateOfDose = LocalDate.now().minusDays(5);
         localDates.add(dateOfDose);
@@ -87,7 +95,7 @@ class VaccineManagerControllerTest {
         when(vaccineManagerService.listVaccineManager(state)).thenReturn(vaccineManagerDTOList);
 
         MockHttpServletResponse response = mockMvc.perform(get(RESOURCE_URL))
-                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.length()").value(1))
                 .andReturn().getResponse();
@@ -122,6 +130,7 @@ class VaccineManagerControllerTest {
         vaccine.setBatch("Astrazenica");
         vaccine.setAmountOfDose(2);
         vaccine.setIntervalBetweenDoses(30);
+        vaccine.setManufacturer("Test");
         LocalDate validateDate = LocalDate.now().plusYears(2);
         vaccine.setValidateDate(validateDate);
         List<LocalDate> localDates = new ArrayList<>();
@@ -141,7 +150,7 @@ class VaccineManagerControllerTest {
         when(vaccineManagerService.listVaccineManager(state)).thenReturn(vaccineManagerDTOList);
 
         MockHttpServletResponse response = mockMvc.perform(get(RESOURCE_URL + "?state=Bahia"))
-                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(status().isOk())
                 .andExpect(MockMvcResultMatchers.content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn().getResponse();
 
@@ -150,6 +159,199 @@ class VaccineManagerControllerTest {
         assertEquals(1, returnedVaccineManagerDTOList.length);
         assertEquals(state, firstVaccineManagerDTO.getPatient().getAddress().getState());
         verify(vaccineManagerService, times(1)).listVaccineManager(state);
+    }
+
+    @Test
+    @DisplayName("Deve retornar todos os pacientes com vacinas atrasadas")
+    void should_returnedAllPatientWithOverdueVaccines() throws Exception {
+        String state = "";
+        List<VaccineManagerDTO> vaccineManagerDTOList = new ArrayList<>();
+        Patient patient = new Patient();
+        patient.setFirstName("Natã");
+        patient.setLastName("Ferreira");
+        patient.setBirthDate(String.valueOf(LocalDate.of(2001, 2, 25)));
+        patient.setGender("M");
+        Address address = new Address("2", "Teste", "Teste", "42739195", "Bahia", "Rua teste");
+        patient.setAddress(address);
+        Contact contact = new Contact("71999885759", "71999885759", "teste@teste.com.br");
+        patient.setContact(contact);
+        Vaccine vaccine = new Vaccine();
+        vaccine.setBatch("Astrazenica");
+        vaccine.setAmountOfDose(2);
+        vaccine.setIntervalBetweenDoses(30);
+        vaccine.setManufacturer("Test");
+        LocalDate validateDate = LocalDate.now().plusYears(2);
+        vaccine.setValidateDate(validateDate);
+        List<LocalDate> localDates = new ArrayList<>();
+        LocalDate dateOfDose = LocalDate.now().minusDays(5);
+        localDates.add(dateOfDose);
+
+        VaccineManagerDTO vaccineManagerDTO = new VaccineManagerDTO(
+                "1",
+                LocalDate.now().minusDays(5),
+                patient,
+                vaccine,
+                localDates,
+                new NurseProfessional("Fulano de Tal", "080.625.137-79")
+        );
+        vaccineManagerDTOList.add(vaccineManagerDTO);
+
+        when(vaccineManagerService.filterVaccinesOverdue(state)).thenReturn(vaccineManagerDTOList);
+
+        MockHttpServletResponse response = mockMvc.perform(get(RESOURCE_URL + "/overdue"))
+                .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn().getResponse();
+
+        VaccineManagerDTO[] returnedVaccineManagerDTOList = JsonHelper.toObject(response.getContentAsByteArray(), VaccineManagerDTO[].class);
+        VaccineManagerDTO firstVaccineManagerDTO = Arrays.stream(returnedVaccineManagerDTOList).findFirst().get();
+
+        assertEquals(vaccineManagerDTO.getId(), firstVaccineManagerDTO.getId());
+        assertEquals(dateOfDose, firstVaccineManagerDTO.getListOfDoses().get(0));
+        assertEquals(vaccineManagerDTO.getVaccine(), firstVaccineManagerDTO.getVaccine());
+        assertEquals(vaccineManagerDTO.getPatient(), firstVaccineManagerDTO.getPatient());
+        assertEquals(vaccineManagerDTO.getNurseProfessional(), firstVaccineManagerDTO.getNurseProfessional());
+
+        verify(vaccineManagerService, times(1)).filterVaccinesOverdue(state);
+    }
+
+    @Test
+    @DisplayName("Deve retornar todos os pacientes com vacinas atrasadas filtrados por estado")
+    void should_returnedAllPatientWithOverdueVaccines_FilteredByState() throws Exception {
+        String state = "Bahia";
+        List<VaccineManagerDTO> vaccineManagerDTOList = new ArrayList<>();
+        Patient patient = new Patient();
+        patient.setFirstName("Natã");
+        patient.setLastName("Ferreira");
+        patient.setBirthDate(String.valueOf(LocalDate.of(2001, 2, 25)));
+        patient.setGender("M");
+        Address address = new Address("2", "Teste", "Teste", "42739195", "Bahia", "Rua teste");
+        patient.setAddress(address);
+        Contact contact = new Contact("71999885759", "71999885759", "teste@teste.com.br");
+        patient.setContact(contact);
+        Vaccine vaccine = new Vaccine();
+        vaccine.setBatch("Astrazenica");
+        vaccine.setAmountOfDose(2);
+        vaccine.setIntervalBetweenDoses(30);
+        vaccine.setManufacturer("Test");
+        LocalDate validateDate = LocalDate.now().plusYears(2);
+        vaccine.setValidateDate(validateDate);
+        List<LocalDate> localDates = new ArrayList<>();
+        LocalDate dateOfDose = LocalDate.now().minusDays(5);
+        localDates.add(dateOfDose);
+
+        VaccineManagerDTO vaccineManagerDTO = new VaccineManagerDTO(
+                "1",
+                LocalDate.now().minusDays(5),
+                patient,
+                vaccine,
+                localDates,
+                new NurseProfessional("Fulano de Tal", "080.625.137-79")
+        );
+        vaccineManagerDTOList.add(vaccineManagerDTO);
+
+        when(vaccineManagerService.filterVaccinesOverdue(state)).thenReturn(vaccineManagerDTOList);
+
+        MockHttpServletResponse response = mockMvc.perform(get(RESOURCE_URL + "/overdue?state=Bahia"))
+                .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn().getResponse();
+
+        VaccineManagerDTO[] returnedVaccineManagerDTOList = JsonHelper.toObject(response.getContentAsByteArray(), VaccineManagerDTO[].class);
+        VaccineManagerDTO firstVaccineManagerDTO = Arrays.stream(returnedVaccineManagerDTOList).findFirst().get();
+        assertEquals(1, returnedVaccineManagerDTOList.length);
+        assertEquals(state, firstVaccineManagerDTO.getPatient().getAddress().getState());
+        verify(vaccineManagerService, times(1)).filterVaccinesOverdue(state);
+    }
+
+    @Test
+    @DisplayName("Deve retornar todos os pacientes registrados filtrados fabricante")
+    void should_returnedAllPatientRegistered_FilteredByManufacturer() throws Exception {
+        String state = "";
+        List<VaccineManagerDTO> vaccineManagerDTOList = new ArrayList<>();
+        Patient patient = new Patient();
+        patient.setFirstName("Natã");
+        patient.setLastName("Ferreira");
+        patient.setBirthDate(String.valueOf(LocalDate.of(2001, 2, 25)));
+        patient.setGender("M");
+        Address address = new Address("2", "Teste", "Teste", "42739195", "Bahia", "Rua teste");
+        patient.setAddress(address);
+        Contact contact = new Contact("71999885759", "71999885759", "teste@teste.com.br");
+        patient.setContact(contact);
+        Vaccine vaccine = new Vaccine();
+        vaccine.setBatch("Astrazenica");
+        vaccine.setAmountOfDose(2);
+        vaccine.setIntervalBetweenDoses(30);
+        vaccine.setManufacturer("Test");
+        LocalDate validateDate = LocalDate.now().plusYears(2);
+        vaccine.setValidateDate(validateDate);
+        List<LocalDate> localDates = new ArrayList<>();
+        LocalDate dateOfDose = LocalDate.now().minusDays(5);
+        localDates.add(dateOfDose);
+
+        VaccineManagerDTO vaccineManagerDTO = new VaccineManagerDTO(
+                "1",
+                LocalDate.now().minusDays(5),
+                patient,
+                vaccine,
+                localDates,
+                new NurseProfessional("Fulano de Tal", "080.625.137-79")
+        );
+        vaccineManagerDTOList.add(vaccineManagerDTO);
+
+        when(vaccineManagerService.filterVaccinesByManufacturer("Test", state)).thenReturn(vaccineManagerDTOList);
+
+        mockMvc.perform(get(RESOURCE_URL + "/manufacturer/Test"))
+                .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn().getResponse();
+
+        verify(vaccineManagerService, times(1)).filterVaccinesByManufacturer("Test", state);
+    }
+
+    @Test
+    @DisplayName("Deve retornar todos os pacientes registrados filtrados fabricante e estado")
+    void should_returnedAllPatientRegistered_FilteredByManufacturerAndState() throws Exception {
+        String state = "Bahia";
+        List<VaccineManagerDTO> vaccineManagerDTOList = new ArrayList<>();
+        Patient patient = new Patient();
+        patient.setFirstName("Natã");
+        patient.setLastName("Ferreira");
+        patient.setBirthDate(String.valueOf(LocalDate.of(2001, 2, 25)));
+        patient.setGender("M");
+        Address address = new Address("2", "Teste", "Teste", "42739195", "Bahia", "Rua teste");
+        patient.setAddress(address);
+        Contact contact = new Contact("71999885759", "71999885759", "teste@teste.com.br");
+        patient.setContact(contact);
+        Vaccine vaccine = new Vaccine();
+        vaccine.setBatch("Astrazenica");
+        vaccine.setAmountOfDose(2);
+        vaccine.setIntervalBetweenDoses(30);
+        vaccine.setManufacturer("Test");
+        LocalDate validateDate = LocalDate.now().plusYears(2);
+        vaccine.setValidateDate(validateDate);
+        List<LocalDate> localDates = new ArrayList<>();
+        LocalDate dateOfDose = LocalDate.now().minusDays(5);
+        localDates.add(dateOfDose);
+
+        VaccineManagerDTO vaccineManagerDTO = new VaccineManagerDTO(
+                "1",
+                LocalDate.now().minusDays(5),
+                patient,
+                vaccine,
+                localDates,
+                new NurseProfessional("Fulano de Tal", "080.625.137-79")
+        );
+        vaccineManagerDTOList.add(vaccineManagerDTO);
+
+        when(vaccineManagerService.filterVaccinesByManufacturer("Test", state)).thenReturn(vaccineManagerDTOList);
+
+        mockMvc.perform(get(RESOURCE_URL + "/manufacturer/Test?state=Bahia"))
+                .andExpect(status().isOk())
+                .andExpect(MockMvcResultMatchers.content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn().getResponse();
+
+        verify(vaccineManagerService, times(1)).filterVaccinesByManufacturer("Test", state);
     }
 
     @Test
@@ -176,15 +378,68 @@ class VaccineManagerControllerTest {
                 post(RESOURCE_URL)
                         .content(JsonHelper.toJson(vaccineManager))
                         .contentType(MediaType.APPLICATION_JSON)
-                ).andExpect(MockMvcResultMatchers.status().isCreated()).andReturn().getResponse();
+                ).andExpect(status().isCreated()).andReturn().getResponse();
 
         VaccineManager returnedVaccineManager = JsonHelper.toObject(response.getContentAsByteArray(), VaccineManager.class);
-        assertNotNull(returnedVaccineManager.getId());
-        assertNotNull(returnedVaccineManager.getIdVaccine());
-        assertNotNull(returnedVaccineManager.getIdPatient());
-        assertNotNull(returnedVaccineManager.getListOfDoses());
-        assertNotNull(returnedVaccineManager.getNurseProfessional());
-        assertNotNull(returnedVaccineManager.getVaccineDate());
+        assertEquals(vaccineManager.getId(), returnedVaccineManager.getId());
+        assertEquals(vaccineManager.getIdVaccine(), returnedVaccineManager.getIdVaccine());
+        assertEquals(vaccineManager.getIdPatient(), returnedVaccineManager.getIdPatient());
+        assertEquals(vaccineManager.getListOfDoses(), returnedVaccineManager.getListOfDoses());
+        assertEquals(vaccineManager.getNurseProfessional(), returnedVaccineManager.getNurseProfessional());
+        assertEquals(vaccineManager.getVaccineDate(), returnedVaccineManager.getVaccineDate());
+
+        verify(vaccineManagerService, times(1)).create(any(VaccineManager.class));
+    }
+
+    @Test
+    @DisplayName("Deve deletar um registro de paciente e retorna os valores no corpo")
+    void should_deleteLastPatientRegistered_ExpectedOk() throws Exception {
+        VaccineManager vaccineManager = new VaccineManager();
+        vaccineManager.setId("idvaccinemanager");
+        vaccineManager.setIdVaccine("idtestevaccine");
+        vaccineManager.setIdPatient("idtestepatient");
+        vaccineManager.setVaccineDate(LocalDate.of(2023, 11, 9));
+        vaccineManager.setNurseProfessional(new NurseProfessional("Joãozinho", "529.876.140-20"));
+        when(vaccineManagerService.removeLastVaccination(vaccineManager.getId())).thenReturn(vaccineManager);
+
+        MockHttpServletResponse response = mockMvc.perform(
+                patch(RESOURCE_URL + "/" + vaccineManager.getId())
+                        .content(JsonHelper.toJson(vaccineManager))
+                        .contentType(MediaType.APPLICATION_JSON)
+        ).andExpect(status().isOk()).andReturn().getResponse();
+
+        VaccineManager returnedVaccineManager = JsonHelper.toObject(response.getContentAsByteArray(), VaccineManager.class);
+
+        assertEquals(vaccineManager.getId(), returnedVaccineManager.getId());
+        assertEquals(vaccineManager.getIdVaccine(), returnedVaccineManager.getIdVaccine());
+        assertEquals(vaccineManager.getIdPatient(), returnedVaccineManager.getIdPatient());
+        assertEquals(vaccineManager.getListOfDoses(), returnedVaccineManager.getListOfDoses());
+        assertEquals(vaccineManager.getNurseProfessional(), returnedVaccineManager.getNurseProfessional());
+        assertEquals(vaccineManager.getVaccineDate(), returnedVaccineManager.getVaccineDate());
+
+        verify(vaccineManagerService, times(1)).removeLastVaccination(vaccineManager.getId());
+    }
+
+    @Test
+    @DisplayName("Deve lançar NotFoundException para um ID inválido")
+    void shouldThrowNotFoundExceptionForInvalidId() throws Exception {
+        String invalidId = "invalidId";
+
+        when(vaccineManagerService.removeLastVaccination(invalidId)).thenThrow(new NotFoundException("Registro da vacinação não foi encontrado."));
+
+        mockMvc.perform(patch(RESOURCE_URL + "/" + invalidId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Deve lançar BadRequestException para um registro sem vacinas")
+    void shouldThrowBadRequestExceptionForEmptyList() throws Exception {
+        String idVaccineManager = "idvaccinemanager";
+
+        when(vaccineManagerService.removeLastVaccination(idVaccineManager)).thenThrow(new BadRequestException("Você não possui registros a serem removidos."));
+
+        mockMvc.perform(patch(RESOURCE_URL + "/" + idVaccineManager))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
