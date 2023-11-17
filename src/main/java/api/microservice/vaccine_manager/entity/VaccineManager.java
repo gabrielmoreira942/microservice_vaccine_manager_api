@@ -1,5 +1,6 @@
 package api.microservice.vaccine_manager.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,6 +24,7 @@ public class VaccineManager {
     private String id;
 
     @PastOrPresent
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "UTC")
     private LocalDate vaccineDate;
 
     @NotEmpty
@@ -31,6 +33,7 @@ public class VaccineManager {
     @NotEmpty
     private String idVaccine;
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "UTC")
     private List<LocalDate> listOfDoses = new ArrayList<>();
 
     @NotNull(message = "Insira o profissional de enfermagem que aplicou a vacina")
