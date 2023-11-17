@@ -193,24 +193,29 @@ public class VaccineManagerService {
         List<VaccineManagerDTO> listOfVaccineManagerDTO = new ArrayList<>();
 
         listOfVaccineManger.forEach(item -> {
-            VaccineManagerDTO managerDTO = new VaccineManagerDTO();
-            BeanUtils.copyProperties(item, managerDTO);
+            try {
+                VaccineManagerDTO managerDTO = new VaccineManagerDTO();
+                BeanUtils.copyProperties(item, managerDTO);
 
-            Optional<Vaccine> vaccine = vaccineClient.getByIdVaccine(item.getIdVaccine());
-            vaccine.ifPresent(managerDTO::setVaccine);
+                Optional<Vaccine> vaccine = vaccineClient.getByIdVaccine(item.getIdVaccine());
+                vaccine.ifPresent(managerDTO::setVaccine);
 
-            Optional<Patient> patient = patientClient.getByIdPatient(item.getIdPatient());
-            String patientState = patient.get().getAddress().getState();
-            if (
-                    patient.isEmpty()
-                            || (!state.isEmpty()
-                            && !patientState.equalsIgnoreCase(state))
-            ) {
-                return;
+                Optional<Patient> patient = patientClient.getByIdPatient(item.getIdPatient());
+                String patientState = patient.get().getAddress().getState();
+
+                if (
+                        patient.isEmpty()
+                                || (!state.isEmpty()
+                                && !patientState.equalsIgnoreCase(state))
+                ) {
+                    return;
+                }
+
+                managerDTO.setPatient(patient.get());
+                listOfVaccineManagerDTO.add(managerDTO);
+            } catch (Exception e) {
+                System.out.println(e.getMessage()); // Possível LOG
             }
-
-            managerDTO.setPatient(patient.get());
-            listOfVaccineManagerDTO.add(managerDTO);
         });
 
         return listOfVaccineManagerDTO;
