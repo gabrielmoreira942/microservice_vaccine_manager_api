@@ -2,6 +2,7 @@ package api.microservice.vaccine_manager.controller;
 
 import api.microservice.vaccine_manager.dto.VaccineManagerDTO;
 import api.microservice.vaccine_manager.entity.VaccineManager;
+import api.microservice.vaccine_manager.handler.exceptions.AmountOfVacinationException;
 import api.microservice.vaccine_manager.handler.exceptions.BadRequestException;
 import api.microservice.vaccine_manager.handler.exceptions.InvalidVaccineDateException;
 import api.microservice.vaccine_manager.handler.exceptions.NotFoundException;
@@ -76,7 +77,7 @@ public class VaccineManagerController {
     public ResponseEntity<VaccineManagerDTO> update(
             @PathVariable String id,
             @RequestBody @Valid VaccineManager vaccineManager
-    ) throws InvalidVaccineDateException, NotFoundException, BadRequestException {
+    ) throws InvalidVaccineDateException, NotFoundException, BadRequestException, AmountOfVacinationException {
         return ResponseEntity.ok(vaccineManagerService.update(id, vaccineManager));
     }
 

@@ -6,6 +6,7 @@ import api.microservice.vaccine_manager.dto.Patient;
 import api.microservice.vaccine_manager.dto.Vaccine;
 import api.microservice.vaccine_manager.dto.VaccineManagerDTO;
 import api.microservice.vaccine_manager.entity.VaccineManager;
+import api.microservice.vaccine_manager.handler.exceptions.AmountOfVacinationException;
 import api.microservice.vaccine_manager.handler.exceptions.BadRequestException;
 import api.microservice.vaccine_manager.handler.exceptions.InvalidVaccineDateException;
 import api.microservice.vaccine_manager.handler.exceptions.NotFoundException;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -63,7 +65,7 @@ public class VaccineManagerService {
         return filterVaccineManager(state, listOfVaccineManger);
     }
 
-    public VaccineManagerDTO update(String id, VaccineManager vaccineManager) throws InvalidVaccineDateException, NotFoundException, BadRequestException {
+    public VaccineManagerDTO update(String id, VaccineManager vaccineManager) throws InvalidVaccineDateException, NotFoundException, BadRequestException, AmountOfVacinationException {
         Optional<VaccineManager> storedVaccineManagerOptional = vaccineManagerRepository.findById(id);
 
         if (storedVaccineManagerOptional.isEmpty()) {
@@ -98,11 +100,8 @@ public class VaccineManagerService {
             throw new BadRequestException("A vacina não pode ser de fabricantes diferentes.");
         }
 
+        verifyIfListOfDosesIsGreaterOfAmountOfDoses(storedVaccineManager.getListOfDoses().size(), vaccine);
         verifyIfVaccineDateIsBeforeLastVaccinationPlusDays(vaccineValidate, vaccineDate, lastVacinationPlusDays);
-
-        if (storedVaccineManager.getListOfDoses().size() >= vaccine.getAmountOfDose()) {
-            throw new InvalidVaccineDateException();
-        }
 
         storedVaccineManager.setVaccineDate(vaccineManager.getVaccineDate());
         storedVaccineManager.setNurseProfessional(vaccineManager.getNurseProfessional());
@@ -160,7 +159,7 @@ public class VaccineManagerService {
                                 lastVaccinationPlusDays.get(sizeOfDoses - 1).plusDays(vaccine.getIntervalBetweenDoses())
                         );
                         verifyIfListOfDosesIsGreaterOfAmountOfDoses(vaccineManagerDTO.getListOfDoses().size(), vaccine);
-                    } catch (InvalidVaccineDateException e) {
+                    } catch (InvalidVaccineDateException | AmountOfVacinationException e) {
                         return;
                     }
                     returnedOfVaccineManagerDTO.add(vaccineManagerDTO);
@@ -225,13 +224,15 @@ public class VaccineManagerService {
         if (
                 LocalDate.now().isAfter(vaccineValidate)
                         || (vaccineDate.isBefore(lastVaccinationPlusDays))
-        ) throw new InvalidVaccineDateException();
+        ) throw new InvalidVaccineDateException(
+                "O paciente só pode se vacinar novamente na data: " + lastVaccinationPlusDays.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+        );
 
     }
 
-    private void verifyIfListOfDosesIsGreaterOfAmountOfDoses(Integer quantityOfDoses, Vaccine vaccine) throws InvalidVaccineDateException {
+    private void verifyIfListOfDosesIsGreaterOfAmountOfDoses(Integer quantityOfDoses, Vaccine vaccine) throws AmountOfVacinationException {
         if (quantityOfDoses >= vaccine.getAmountOfDose()) {
-            throw new InvalidVaccineDateException();
+            throw new AmountOfVacinationException("Não foi possível processar a sua solicitação pois o paciente já recebeu todas as vacinas necessárias!");
         }
     }
 

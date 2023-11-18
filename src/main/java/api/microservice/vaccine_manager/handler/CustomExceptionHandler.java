@@ -1,5 +1,6 @@
 package api.microservice.vaccine_manager.handler;
 
+import api.microservice.vaccine_manager.handler.exceptions.AmountOfVacinationException;
 import api.microservice.vaccine_manager.handler.exceptions.BadRequestException;
 import api.microservice.vaccine_manager.handler.exceptions.InvalidVaccineDateException;
 import api.microservice.vaccine_manager.handler.exceptions.NotFoundException;
@@ -35,7 +36,7 @@ public class CustomExceptionHandler {
 
         body.put("mensagem", ex.getMessage());
 
-        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(body, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @ExceptionHandler(NotFoundException.class)
@@ -54,5 +55,14 @@ public class CustomExceptionHandler {
         body.put("mensagem", ex.getMessage());
 
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(AmountOfVacinationException.class)
+    public ResponseEntity<Object> handleAmountOfVacination(AmountOfVacinationException ex) {
+        Map<String, Object> body = new HashMap<>();
+
+        body.put("mensagem", ex.getMessage());
+
+        return new ResponseEntity<>(body, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 }
