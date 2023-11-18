@@ -6,6 +6,8 @@ import api.microservice.vaccine_manager.handler.exceptions.AmountOfVacinationExc
 import api.microservice.vaccine_manager.handler.exceptions.BadRequestException;
 import api.microservice.vaccine_manager.handler.exceptions.InvalidVaccineDateException;
 import api.microservice.vaccine_manager.handler.exceptions.NotFoundException;
+import api.microservice.vaccine_manager.handler.exceptions.UnequalVaccineManufacturerException;
+import api.microservice.vaccine_manager.handler.exceptions.UniqueDoseVaccineException;
 import api.microservice.vaccine_manager.service.VaccineManagerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -77,7 +79,7 @@ public class VaccineManagerController {
     public ResponseEntity<VaccineManagerDTO> update(
             @PathVariable String id,
             @RequestBody @Valid VaccineManager vaccineManager
-    ) throws InvalidVaccineDateException, NotFoundException, BadRequestException, AmountOfVacinationException {
+    ) throws InvalidVaccineDateException, NotFoundException, BadRequestException, UnequalVaccineManufacturerException, UniqueDoseVaccineException, AmountOfVacinationException {
         return ResponseEntity.ok(vaccineManagerService.update(id, vaccineManager));
     }
 

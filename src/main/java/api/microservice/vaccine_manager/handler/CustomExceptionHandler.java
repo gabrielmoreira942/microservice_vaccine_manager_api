@@ -4,6 +4,8 @@ import api.microservice.vaccine_manager.handler.exceptions.AmountOfVacinationExc
 import api.microservice.vaccine_manager.handler.exceptions.BadRequestException;
 import api.microservice.vaccine_manager.handler.exceptions.InvalidVaccineDateException;
 import api.microservice.vaccine_manager.handler.exceptions.NotFoundException;
+import api.microservice.vaccine_manager.handler.exceptions.UnequalVaccineManufacturerException;
+import api.microservice.vaccine_manager.handler.exceptions.UniqueDoseVaccineException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -57,8 +59,27 @@ public class CustomExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
+
     @ExceptionHandler(AmountOfVacinationException.class)
-    public ResponseEntity<Object> handleAmountOfVacination(AmountOfVacinationException ex) {
+    public ResponseEntity<Object> handleAmountOfVaccination(AmountOfVacinationException ex) {
+        Map<String, Object> body = new HashMap<>();
+
+        body.put("mensagem", ex.getMessage());
+
+        return new ResponseEntity<>(body, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @ExceptionHandler(UnequalVaccineManufacturerException.class)
+    public ResponseEntity<Object> handleUnequalVaccineManufacturerException(UnequalVaccineManufacturerException ex) {
+        Map<String, Object> body = new HashMap<>();
+
+        body.put("mensagem", ex.getMessage());
+
+        return new ResponseEntity<>(body, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @ExceptionHandler(UniqueDoseVaccineException.class)
+    public ResponseEntity<Object> handleUniqueDoseVaccineException(UniqueDoseVaccineException ex) {
         Map<String, Object> body = new HashMap<>();
 
         body.put("mensagem", ex.getMessage());
@@ -68,10 +89,15 @@ public class CustomExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleAllExceptions(Exception ex) {
-        if (ex instanceof MethodArgumentNotValidException ||
-                ex instanceof BadRequestException ||
-                ex instanceof InvalidVaccineDateException ||
-                ex instanceof NotFoundException) {
+        if (
+            ex instanceof MethodArgumentNotValidException ||
+            ex instanceof BadRequestException ||
+            ex instanceof InvalidVaccineDateException ||
+            ex instanceof NotFoundException ||
+            ex instanceof UniqueDoseVaccineException ||
+            ex instanceof UnequalVaccineManufacturerException ||
+            ex instanceof AmountOfVacinationException
+        ) {
             return null;
         }
 

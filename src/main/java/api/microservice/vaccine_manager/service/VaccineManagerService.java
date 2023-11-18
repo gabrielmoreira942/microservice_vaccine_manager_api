@@ -10,6 +10,8 @@ import api.microservice.vaccine_manager.handler.exceptions.AmountOfVacinationExc
 import api.microservice.vaccine_manager.handler.exceptions.BadRequestException;
 import api.microservice.vaccine_manager.handler.exceptions.InvalidVaccineDateException;
 import api.microservice.vaccine_manager.handler.exceptions.NotFoundException;
+import api.microservice.vaccine_manager.handler.exceptions.UnequalVaccineManufacturerException;
+import api.microservice.vaccine_manager.handler.exceptions.UniqueDoseVaccineException;
 import api.microservice.vaccine_manager.repository.VaccineManagerRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,7 +67,7 @@ public class VaccineManagerService {
         return filterVaccineManager(state, listOfVaccineManger);
     }
 
-    public VaccineManagerDTO update(String id, VaccineManager vaccineManager) throws InvalidVaccineDateException, NotFoundException, BadRequestException, AmountOfVacinationException {
+    public VaccineManagerDTO update(String id, VaccineManager vaccineManager) throws InvalidVaccineDateException, NotFoundException, BadRequestException, AmountOfVacinationException, UnequalVaccineManufacturerException, UniqueDoseVaccineException {
         Optional<VaccineManager> storedVaccineManagerOptional = vaccineManagerRepository.findById(id);
 
         if (storedVaccineManagerOptional.isEmpty()) {
@@ -85,28 +87,37 @@ public class VaccineManagerService {
             throw new NotFoundException("Vacina antiga não encontrada");
         }
 
-        if (storedVaccineManager.getListOfDoses().size() <= 0) {
-            throw new BadRequestException("Você não possui registros a serem removidos.");
+        if (storedVaccineManager.getListOfDoses().isEmpty()) {
+            throw new BadRequestException("Você não possui registros a serem atualizados.");
         }
 
         Vaccine vaccine = vaccineOptional.get();
         Integer vaccineInterval = vaccine.getIntervalBetweenDoses();
         LocalDate vaccineValidate = vaccine.getValidateDate();
         int lastAmountOfDoses = storedVaccineManager.getListOfDoses().size() - 1;
-        LocalDate lastVacinationPlusDays = storedVaccineManager.getListOfDoses().get(lastAmountOfDoses).plusDays(vaccineInterval);
+        LocalDate lastVaccinationPlusDays = storedVaccineManager.getListOfDoses().get(lastAmountOfDoses).plusDays(vaccineInterval);
         LocalDate vaccineDate = vaccineManager.getVaccineDate();
 
         if (!oldVaccineOptional.get().getManufacturer().equals(vaccine.getManufacturer())) {
-            throw new BadRequestException("A vacina não pode ser de fabricantes diferentes.");
+            throw new UnequalVaccineManufacturerException(patientOptional.get().getFirstName(), patientOptional.get().getLastName(), vaccine.getManufacturer());
         }
 
         verifyIfListOfDosesIsGreaterOfAmountOfDoses(storedVaccineManager.getListOfDoses().size(), vaccine);
-        verifyIfVaccineDateIsBeforeLastVaccinationPlusDays(vaccineValidate, vaccineDate, lastVacinationPlusDays);
+        verifyIfVaccineDateIsBeforeLastVaccinationPlusDays(vaccineValidate, vaccineDate, lastVaccinationPlusDays);
+
+        if (vaccineOptional.get().getAmountOfDose() == 1 && vaccineManager.getListOfDoses().size() == 1) {
+            throw new UniqueDoseVaccineException(
+                    patientOptional.get().getFirstName(),
+                    patientOptional.get().getLastName(),
+                    vaccine.getManufacturer(),
+                    vaccineManager.getListOfDoses().get(lastAmountOfDoses).format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+            );
+        }
 
         storedVaccineManager.setVaccineDate(vaccineManager.getVaccineDate());
         storedVaccineManager.setNurseProfessional(vaccineManager.getNurseProfessional());
 
-        if (!vaccineDate.isEqual(lastVacinationPlusDays)) {
+        if (!vaccineDate.isEqual(lastVaccinationPlusDays)) {
             storedVaccineManager.getListOfDoses().add(vaccineManager.getVaccineDate());
         }
 
