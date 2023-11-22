@@ -95,14 +95,14 @@ public class VaccineManagerService {
         }
 
         Vaccine vaccine = vaccineOptional.get();
-        Integer vaccineInterval = vaccine.getIntervalBetweenDoses();
+        int vaccineInterval = vaccine.getIntervalBetweenDoses() != null ? vaccine.getIntervalBetweenDoses() : 0;
         LocalDate vaccineValidate = vaccine.getValidateDate();
         int lastAmountOfDoses = storedVaccineManager.getListOfDoses().size() - 1;
         LocalDate lastVaccinationPlusDays = storedVaccineManager.getListOfDoses().get(lastAmountOfDoses).plusDays(vaccineInterval);
         LocalDate vaccineDate = vaccineManager.getVaccineDate();
 
         if (!oldVaccineOptional.get().getManufacturer().equals(vaccine.getManufacturer())) {
-            throw new UnequalVaccineManufacturerException(patientOptional.get().getFirstName(), patientOptional.get().getLastName(), vaccine.getManufacturer());
+            throw new UnequalVaccineManufacturerException(patientOptional.get().getFirstName(), patientOptional.get().getLastName(), oldVaccineOptional.get().getManufacturer());
         }
 
         verifyIfListOfDosesIsGreaterOfAmountOfDoses(storedVaccineManager.getListOfDoses().size(), vaccine);
@@ -120,7 +120,7 @@ public class VaccineManagerService {
         storedVaccineManager.setVaccineDate(vaccineManager.getVaccineDate());
         storedVaccineManager.setNurseProfessional(vaccineManager.getNurseProfessional());
 
-        if (!vaccineDate.isEqual(lastVaccinationPlusDays)) {
+        if (vaccineDate.isEqual(lastVaccinationPlusDays)) {
             storedVaccineManager.getListOfDoses().add(vaccineManager.getVaccineDate());
         }
 
