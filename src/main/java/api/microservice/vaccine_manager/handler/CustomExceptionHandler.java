@@ -1,11 +1,6 @@
 package api.microservice.vaccine_manager.handler;
 
-import api.microservice.vaccine_manager.handler.exceptions.AmountOfVacinationException;
-import api.microservice.vaccine_manager.handler.exceptions.BadRequestException;
-import api.microservice.vaccine_manager.handler.exceptions.InvalidVaccineDateException;
-import api.microservice.vaccine_manager.handler.exceptions.NotFoundException;
-import api.microservice.vaccine_manager.handler.exceptions.UnequalVaccineManufacturerException;
-import api.microservice.vaccine_manager.handler.exceptions.UniqueDoseVaccineException;
+import api.microservice.vaccine_manager.handler.exceptions.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -87,6 +82,15 @@ public class CustomExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
+    @ExceptionHandler(UnprocessableEntityException.class)
+    public ResponseEntity<Object> handleUnprocessableEntityException(UnprocessableEntityException ex) {
+        Map<String, Object> body = new HashMap<>();
+
+        body.put("mensagem", ex.getMessage());
+
+        return new ResponseEntity<>(body, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleAllExceptions(Exception ex) {
         if (
@@ -96,7 +100,8 @@ public class CustomExceptionHandler {
             ex instanceof NotFoundException ||
             ex instanceof UniqueDoseVaccineException ||
             ex instanceof UnequalVaccineManufacturerException ||
-            ex instanceof AmountOfVacinationException
+            ex instanceof AmountOfVacinationException ||
+            ex instanceof UnprocessableEntityException
         ) {
             return null;
         }

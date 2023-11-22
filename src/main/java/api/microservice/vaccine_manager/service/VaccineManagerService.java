@@ -6,12 +6,7 @@ import api.microservice.vaccine_manager.dto.Patient;
 import api.microservice.vaccine_manager.dto.Vaccine;
 import api.microservice.vaccine_manager.dto.VaccineManagerDTO;
 import api.microservice.vaccine_manager.entity.VaccineManager;
-import api.microservice.vaccine_manager.handler.exceptions.AmountOfVacinationException;
-import api.microservice.vaccine_manager.handler.exceptions.BadRequestException;
-import api.microservice.vaccine_manager.handler.exceptions.InvalidVaccineDateException;
-import api.microservice.vaccine_manager.handler.exceptions.NotFoundException;
-import api.microservice.vaccine_manager.handler.exceptions.UnequalVaccineManufacturerException;
-import api.microservice.vaccine_manager.handler.exceptions.UniqueDoseVaccineException;
+import api.microservice.vaccine_manager.handler.exceptions.*;
 import api.microservice.vaccine_manager.repository.VaccineManagerRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +32,15 @@ public class VaccineManagerService {
     @Autowired
     private VaccineManagerRepository vaccineManagerRepository;
 
-    public VaccineManager create(VaccineManager vaccineManager) {
+    public VaccineManager create(VaccineManager vaccineManager) throws UnprocessableEntityException {
+        Optional<VaccineManager> patientAlreadyRegistered = vaccineManagerRepository.getByIdPatient(vaccineManager.getIdPatient());
+
+        if (patientAlreadyRegistered.isPresent()) {
+            throw new UnprocessableEntityException(
+                    "O paciente já tomou a sua primeira dose"
+            );
+        }
+
         VaccineManager newVaccineManager = new VaccineManager();
         Optional<Patient> patientOptional = patientClient.getByIdPatient(vaccineManager.getIdPatient());
         if (patientOptional.isPresent()) {

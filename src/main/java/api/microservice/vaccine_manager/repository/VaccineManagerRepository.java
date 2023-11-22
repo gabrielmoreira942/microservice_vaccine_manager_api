@@ -9,4 +9,5 @@ import java.util.Optional;
 
 public interface VaccineManagerRepository extends MongoRepository<VaccineManager, String> {
     Optional<List<VaccineManager>> findAllByIdPatient(String idPatient);
+    Optional<VaccineManager> getByIdPatient(String idPatient);
 }

@@ -2,12 +2,7 @@ package api.microservice.vaccine_manager.controller;
 
 import api.microservice.vaccine_manager.dto.VaccineManagerDTO;
 import api.microservice.vaccine_manager.entity.VaccineManager;
-import api.microservice.vaccine_manager.handler.exceptions.AmountOfVacinationException;
-import api.microservice.vaccine_manager.handler.exceptions.BadRequestException;
-import api.microservice.vaccine_manager.handler.exceptions.InvalidVaccineDateException;
-import api.microservice.vaccine_manager.handler.exceptions.NotFoundException;
-import api.microservice.vaccine_manager.handler.exceptions.UnequalVaccineManufacturerException;
-import api.microservice.vaccine_manager.handler.exceptions.UniqueDoseVaccineException;
+import api.microservice.vaccine_manager.handler.exceptions.*;
 import api.microservice.vaccine_manager.service.VaccineManagerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -65,7 +60,7 @@ public class VaccineManagerController {
     }
 
     @PostMapping
-    public ResponseEntity<VaccineManager> create(@RequestBody @Valid VaccineManager vaccineManager) {
+    public ResponseEntity<VaccineManager> create(@RequestBody @Valid VaccineManager vaccineManager) throws UnprocessableEntityException {
         VaccineManager createdVaccineRegister = vaccineManagerService.create(vaccineManager);
         URI location = ServletUriComponentsBuilder
                 .fromCurrentRequest()
