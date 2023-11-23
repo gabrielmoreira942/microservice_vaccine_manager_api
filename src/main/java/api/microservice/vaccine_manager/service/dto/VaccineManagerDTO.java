@@ -24,7 +24,7 @@ public class VaccineManagerDTO {
     @NotEmpty(message = "Insira o id da vacina")
     private String idVaccine;
 
-//    @PastOrPresent
+    @PastOrPresent
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "UTC")
     private LocalDate lastDateOfVaccine;
 
