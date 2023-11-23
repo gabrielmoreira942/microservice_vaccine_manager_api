@@ -10,6 +10,9 @@ import api.microservice.vaccine_manager.handler.exceptions.*;
 import api.microservice.vaccine_manager.repository.VaccineManagerRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +35,14 @@ public class VaccineManagerService {
     @Autowired
     private VaccineManagerRepository vaccineManagerRepository;
 
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "vaccine-manager-list", allEntries = true),
+                    @CacheEvict(value = "vaccine-manager-by-manufacturer", allEntries = true),
+                    @CacheEvict(value = "vaccine-patient-by-id", allEntries = true),
+                    @CacheEvict(value = "vaccine-manager-overdue-list", allEntries = true)
+            }
+    )
     public VaccineManager create(VaccineManager vaccineManager) throws UnprocessableEntityException {
         Optional<VaccineManager> patientAlreadyRegistered = vaccineManagerRepository.getByIdPatient(vaccineManager.getIdPatient());
 
@@ -65,11 +76,20 @@ public class VaccineManagerService {
         return vaccineManagerRepository.insert(newVaccineManager);
     }
 
+    @Cacheable("vaccine-manager-list")
     public List<VaccineManagerDTO> listVaccineManager(String state) {
         List<VaccineManager> listOfVaccineManger = vaccineManagerRepository.findAll();
         return filterVaccineManager(state, listOfVaccineManger);
     }
 
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "vaccine-manager-list", allEntries = true),
+                    @CacheEvict(value = "vaccine-manager-by-manufacturer", allEntries = true),
+                    @CacheEvict(value = "vaccine-patient-by-id", allEntries = true),
+                    @CacheEvict(value = "vaccine-manager-overdue-list", allEntries = true)
+            }
+    )
     public VaccineManagerDTO update(String id, VaccineManager vaccineManager) throws InvalidVaccineDateException, NotFoundException, BadRequestException, AmountOfVacinationException, UnequalVaccineManufacturerException, UniqueDoseVaccineException {
         Optional<VaccineManager> storedVaccineManagerOptional = vaccineManagerRepository.findById(id);
 
@@ -134,6 +154,14 @@ public class VaccineManagerService {
         return vaccineManagerDTO;
     }
 
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "vaccine-manager-list", allEntries = true),
+                    @CacheEvict(value = "vaccine-manager-by-manufacturer", allEntries = true),
+                    @CacheEvict(value = "vaccine-patient-by-id", allEntries = true),
+                    @CacheEvict(value = "vaccine-manager-overdue-list", allEntries = true)
+            }
+    )
     public VaccineManager removeLastVaccination(String id) throws NotFoundException, BadRequestException {
         Optional<VaccineManager> vaccineManagerOptional = vaccineManagerRepository.findById(id);
 
@@ -153,6 +181,7 @@ public class VaccineManagerService {
         return vaccineManagerRepository.save(vaccineManager);
     }
 
+    @Cacheable("vaccine-manager-overdue-list")
     public List<VaccineManagerDTO> filterVaccinesOverdue(String state) {
         List<VaccineManager> allVaccinesManager = vaccineManagerRepository.findAll();
         List<VaccineManagerDTO> listOfVaccineManagerDTO = filterVaccineManager(state, allVaccinesManager);
@@ -182,6 +211,8 @@ public class VaccineManagerService {
 
         return returnedOfVaccineManagerDTO;
     }
+
+    @Cacheable("vaccine-manager-by-manufacturer")
     public List<VaccineManagerDTO> filterVaccinesByManufacturer(String manufacturer, String state) {
         List<VaccineManager> allVaccinesManager = vaccineManagerRepository.findAll();
         List<VaccineManagerDTO> listOfVaccineManagerDTO = filterVaccineManager(state, allVaccinesManager);
@@ -250,6 +281,7 @@ public class VaccineManagerService {
         }
     }
 
+    @Cacheable("vaccine-patient-by-id")
     public List<VaccineManagerDTO> getAllVaccinesByPatientId(String patientId) throws NotFoundException {
         Optional<List<VaccineManager>> vaccineManagerOptional = vaccineManagerRepository.findAllByIdPatient(patientId);
 
