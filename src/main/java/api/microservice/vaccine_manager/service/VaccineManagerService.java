@@ -178,6 +178,9 @@ public class VaccineManagerService {
         if (lastVaccineDose <= 0) {
             throw new BadRequestException("Você não possui registros a serem removidos.");
         }
+        if (lastVaccineDose == 1){
+            throw new BadRequestException("Não é possível remover quando existe apenas uma dose.");
+        }
 
         vaccineManager.getListOfDoses().remove(lastVaccineDose - 1);
 
