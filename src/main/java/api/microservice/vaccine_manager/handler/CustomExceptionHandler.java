@@ -36,6 +36,15 @@ public class CustomExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
+    @ExceptionHandler(ExpiredVaccineException.class)
+    public ResponseEntity<Object> handleExpiredVaccine(ExpiredVaccineException ex) {
+        Map<String, Object> body = new HashMap<>();
+
+        body.put("mensagem", ex.getMessage());
+
+        return new ResponseEntity<>(body, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<Object> handleResourceNotFound(NotFoundException ex) {
         Map<String, Object> body = new HashMap<>();
@@ -101,7 +110,8 @@ public class CustomExceptionHandler {
             ex instanceof UniqueDoseVaccineException ||
             ex instanceof UnequalVaccineManufacturerException ||
             ex instanceof AmountOfVacinationException ||
-            ex instanceof UnprocessableEntityException
+            ex instanceof UnprocessableEntityException ||
+            ex instanceof ExpiredVaccineException
         ) {
             return null;
         }

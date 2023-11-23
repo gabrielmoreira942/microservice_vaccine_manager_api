@@ -29,6 +29,17 @@ public class VaccineManagerController {
     @Autowired
     private VaccineManagerService vaccineManagerService;
 
+    @PostMapping
+    public ResponseEntity<VaccineManager> create(@RequestBody @Valid VaccineManagerDTO vaccineManagerDTO) throws UnprocessableEntityException, NotFoundException {
+        VaccineManager createdVaccineRegister = vaccineManagerService.create(vaccineManagerDTO);
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(createdVaccineRegister.getId())
+                .toUri();
+        return ResponseEntity.created(location).body(createdVaccineRegister);
+    }
+
     @GetMapping
     public ResponseEntity<List<VaccineManager>> getAll(
             @RequestParam(value = "state", required = false, defaultValue = "") String state
@@ -60,22 +71,13 @@ public class VaccineManagerController {
         return ResponseEntity.ok(vaccineManagerList);
     }
 
-    @PostMapping
-    public ResponseEntity<VaccineManager> create(@RequestBody @Valid VaccineManagerDTO vaccineManagerDTO) throws UnprocessableEntityException, NotFoundException {
-        VaccineManager createdVaccineRegister = vaccineManagerService.create(vaccineManagerDTO);
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(createdVaccineRegister.getId())
-                .toUri();
-        return ResponseEntity.created(location).body(createdVaccineRegister);
-    }
-
     @PutMapping("/{id}")
-    public ResponseEntity<VaccineManagerDTO> update(
+    public ResponseEntity<VaccineManager> update(
             @PathVariable String id,
-            @RequestBody @Valid VaccineManager vaccineManager
-    ) throws InvalidVaccineDateException, NotFoundException, BadRequestException, UnequalVaccineManufacturerException, UniqueDoseVaccineException, AmountOfVacinationException {
+            @RequestBody @Valid VaccineManagerDTO vaccineManager
+    ) throws InvalidVaccineDateException, NotFoundException, BadRequestException,
+            UnequalVaccineManufacturerException, UniqueDoseVaccineException, AmountOfVacinationException,
+            ExpiredVaccineException {
         return ResponseEntity.ok(vaccineManagerService.update(id, vaccineManager));
     }
 
