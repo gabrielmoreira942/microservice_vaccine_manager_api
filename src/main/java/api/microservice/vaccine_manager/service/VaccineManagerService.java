@@ -288,8 +288,8 @@ public class VaccineManagerService {
     public List<VaccineManager> getAllVaccinesByPatientId(String patientId) throws NotFoundException {
         Optional<List<VaccineManager>> vaccineManagerOptional = vaccineManagerRepository.findAllByPatientId(patientId);
 
-        if (vaccineManagerOptional.isEmpty()) {
-            throw new NotFoundException("Paciente não encontrado");
+        if (vaccineManagerOptional.get().isEmpty()) {
+            throw new NotFoundException("Não existe um paciente com esse id: " + patientId);
         }
 
         List<VaccineManager> vaccineManagers = new ArrayList<>();
