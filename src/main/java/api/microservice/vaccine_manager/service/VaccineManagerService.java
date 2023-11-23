@@ -2,12 +2,18 @@ package api.microservice.vaccine_manager.service;
 
 import api.microservice.vaccine_manager.client.PatientClient;
 import api.microservice.vaccine_manager.client.VaccineClient;
-import api.microservice.vaccine_manager.dto.Patient;
-import api.microservice.vaccine_manager.dto.Vaccine;
-import api.microservice.vaccine_manager.dto.VaccineManagerDTO;
 import api.microservice.vaccine_manager.entity.VaccineManager;
-import api.microservice.vaccine_manager.handler.exceptions.*;
+import api.microservice.vaccine_manager.handler.exceptions.AmountOfVacinationException;
+import api.microservice.vaccine_manager.handler.exceptions.BadRequestException;
+import api.microservice.vaccine_manager.handler.exceptions.InvalidVaccineDateException;
+import api.microservice.vaccine_manager.handler.exceptions.NotFoundException;
+import api.microservice.vaccine_manager.handler.exceptions.UnequalVaccineManufacturerException;
+import api.microservice.vaccine_manager.handler.exceptions.UniqueDoseVaccineException;
+import api.microservice.vaccine_manager.handler.exceptions.UnprocessableEntityException;
 import api.microservice.vaccine_manager.repository.VaccineManagerRepository;
+import api.microservice.vaccine_manager.service.dto.Patient;
+import api.microservice.vaccine_manager.service.dto.Vaccine;
+import api.microservice.vaccine_manager.service.dto.VaccineManagerDTO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,41 +38,38 @@ public class VaccineManagerService {
     @Autowired
     private VaccineManagerRepository vaccineManagerRepository;
 
-    public VaccineManager create(VaccineManager vaccineManager) throws UnprocessableEntityException {
-        Optional<VaccineManager> patientAlreadyRegistered = vaccineManagerRepository.getByIdPatient(vaccineManager.getIdPatient());
+    public VaccineManager create(VaccineManagerDTO vaccineManagerDTO) throws UnprocessableEntityException, NotFoundException {
+        VaccineManager vaccineManager = new VaccineManager();
+        Optional<VaccineManager> patientAlreadyRegistered = vaccineManagerRepository.findByPatientId(vaccineManagerDTO.getIdPatient());
 
         if (patientAlreadyRegistered.isPresent()) {
-            throw new UnprocessableEntityException(
-                    "O paciente já tomou a sua primeira dose"
-            );
+            throw new UnprocessableEntityException("O paciente já tomou a sua primeira dose");
         }
 
-        VaccineManager newVaccineManager = new VaccineManager();
-        Optional<Patient> patientOptional = patientClient.getByIdPatient(vaccineManager.getIdPatient());
+        Optional<Patient> patientOptional = patientClient.getByIdPatient(vaccineManagerDTO.getIdPatient());
         if (patientOptional.isPresent()) {
-            String idPatient = patientOptional.get().getId();
-            newVaccineManager.setIdPatient(idPatient);
+            vaccineManager.setPatient(patientOptional.get());
+        } else {
+            throw new NotFoundException("Não existe um paciente com esse id: " + vaccineManagerDTO.getIdPatient());
         }
-        Optional<Vaccine> vaccineOptional = vaccineClient.getByIdVaccine(vaccineManager.getIdVaccine());
 
-        newVaccineManager.setVaccineDate(vaccineManager.getVaccineDate());
-
-        vaccineManager.getListOfDoses().add(newVaccineManager.getVaccineDate());
-        newVaccineManager.setListOfDoses(vaccineManager.getListOfDoses());
-
+        Optional<Vaccine> vaccineOptional = vaccineClient.getByIdVaccine(vaccineManagerDTO.getIdVaccine());
         if (vaccineOptional.isPresent()) {
-            Vaccine vaccine = vaccineOptional.get();
-            String idVaccine = vaccine.getId();
-            newVaccineManager.setIdVaccine(idVaccine);
+            vaccineManager.setVaccine(vaccineOptional.get());
+        } else {
+            throw new NotFoundException("Não existe uma vacina com esse id: " + vaccineManagerDTO.getIdVaccine());
         }
 
-        newVaccineManager.setIdVaccine(vaccineManager.getIdVaccine());
-        newVaccineManager.setNurseProfessional(vaccineManager.getNurseProfessional());
-        return vaccineManagerRepository.insert(newVaccineManager);
+        vaccineManager.getListOfDoses().add(vaccineManagerDTO.getLastDateOfVaccine());
+
+        vaccineManager.getNurseProfessionals().add(vaccineManagerDTO.getNurseProfessional());
+
+        return vaccineManagerRepository.insert(vaccineManager);
     }
 
-    public List<VaccineManagerDTO> listVaccineManager(String state) {
-        List<VaccineManager> listOfVaccineManger = vaccineManagerRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<VaccineManager> listVaccineManager(String state) {
+        List<VaccineManager> listOfVaccineManger = vaccineManagerRepository.findAllByOrderByCreatedAtDesc();
         return filterVaccineManager(state, listOfVaccineManger);
     }
 
@@ -78,9 +81,9 @@ public class VaccineManagerService {
         }
 
         VaccineManager storedVaccineManager = storedVaccineManagerOptional.get();
-        Optional<Vaccine> vaccineOptional = vaccineClient.getByIdVaccine(vaccineManager.getIdVaccine());
-        Optional<Vaccine> oldVaccineOptional = vaccineClient.getByIdVaccine(storedVaccineManager.getIdVaccine());
-        Optional<Patient> patientOptional = patientClient.getByIdPatient(vaccineManager.getIdPatient());
+        Optional<Vaccine> vaccineOptional = vaccineClient.getByIdVaccine(vaccineManager.getVaccine().getId());
+        Optional<Vaccine> oldVaccineOptional = vaccineClient.getByIdVaccine(storedVaccineManager.getVaccine().getId());
+        Optional<Patient> patientOptional = patientClient.getByIdPatient(vaccineManager.getPatient().getId());
 
         if (vaccineOptional.isEmpty() || !(vaccineOptional.get() instanceof Vaccine)) {
             throw new NotFoundException("Vacina não encontrada");
@@ -99,7 +102,7 @@ public class VaccineManagerService {
         LocalDate vaccineValidate = vaccine.getValidateDate();
         int lastAmountOfDoses = storedVaccineManager.getListOfDoses().size() - 1;
         LocalDate lastVaccinationPlusDays = storedVaccineManager.getListOfDoses().get(lastAmountOfDoses).plusDays(vaccineInterval);
-        LocalDate vaccineDate = vaccineManager.getVaccineDate();
+        LocalDate vaccineDate = vaccineManager.getListOfDoses().get(lastAmountOfDoses);
 
         if (!oldVaccineOptional.get().getManufacturer().equals(vaccine.getManufacturer())) {
             throw new UnequalVaccineManufacturerException(patientOptional.get().getFirstName(), patientOptional.get().getLastName(), oldVaccineOptional.get().getManufacturer());
@@ -117,18 +120,18 @@ public class VaccineManagerService {
             );
         }
 
-        storedVaccineManager.setVaccineDate(vaccineManager.getVaccineDate());
-        storedVaccineManager.setNurseProfessional(vaccineManager.getNurseProfessional());
+//        storedVaccineManager.setVaccineDate(vaccineManager.getVaccineDate());
+//        storedVaccineManager.setNurseProfessional(vaccineManager.getNurseProfessional());
 
-        if (vaccineDate.isEqual(lastVaccinationPlusDays)) {
-            storedVaccineManager.getListOfDoses().add(vaccineManager.getVaccineDate());
-        }
+//        if (vaccineDate.isEqual(lastVaccinationPlusDays)) {
+//            storedVaccineManager.getListOfDoses().add(vaccineManager.getVaccineDate());
+//        }
 
         VaccineManagerDTO vaccineManagerDTO = new VaccineManagerDTO();
         BeanUtils.copyProperties(storedVaccineManager, vaccineManagerDTO);
 
-        vaccineManagerDTO.setPatient(patientOptional.get());
-        vaccineManagerDTO.setVaccine(vaccineOptional.get());
+//        vaccineManagerDTO.setPatient(patientOptional.get());
+//        vaccineManagerDTO.setVaccine(vaccineOptional.get());
 
         vaccineManagerRepository.save(storedVaccineManager);
         return vaccineManagerDTO;
@@ -153,10 +156,10 @@ public class VaccineManagerService {
         return vaccineManagerRepository.save(vaccineManager);
     }
 
-    public List<VaccineManagerDTO> filterVaccinesOverdue(String state) {
+    public List<VaccineManager> filterVaccinesOverdue(String state) {
         List<VaccineManager> allVaccinesManager = vaccineManagerRepository.findAll();
-        List<VaccineManagerDTO> listOfVaccineManagerDTO = filterVaccineManager(state, allVaccinesManager);
-        List<VaccineManagerDTO> returnedOfVaccineManagerDTO = new ArrayList<>();
+        List<VaccineManager> listOfVaccineManagerDTO = filterVaccineManager(state, allVaccinesManager);
+        List<VaccineManager> returnedOfVaccineManagerDTO = new ArrayList<>();
         listOfVaccineManagerDTO.forEach(
                 vaccineManagerDTO -> {
                     Vaccine vaccine = vaccineManagerDTO.getVaccine();
@@ -182,12 +185,13 @@ public class VaccineManagerService {
 
         return returnedOfVaccineManagerDTO;
     }
-    public List<VaccineManagerDTO> filterVaccinesByManufacturer(String manufacturer, String state) {
-        List<VaccineManager> allVaccinesManager = vaccineManagerRepository.findAll();
-        List<VaccineManagerDTO> listOfVaccineManagerDTO = filterVaccineManager(state, allVaccinesManager);
-        List<VaccineManagerDTO> returnedOfVaccineManagerDTO = new ArrayList<>();
 
-        listOfVaccineManagerDTO.forEach(
+    public List<VaccineManager> filterVaccinesByManufacturer(String manufacturer, String state) {
+        List<VaccineManager> allVaccinesManager = vaccineManagerRepository.findAllByOrderByCreatedAtDesc();
+        List<VaccineManager> filterVaccineManagers = filterVaccineManager(state, allVaccinesManager);
+        List<VaccineManager> returnedOfVaccineManagerDTO = new ArrayList<>();
+
+        filterVaccineManagers.forEach(
                 vaccineManagerDTO -> {
                     Vaccine vaccine = vaccineManagerDTO.getVaccine();
 
@@ -202,20 +206,20 @@ public class VaccineManagerService {
         return returnedOfVaccineManagerDTO;
     }
 
-    private List<VaccineManagerDTO> filterVaccineManager(String state, List<VaccineManager> listOfVaccineManger) {
-        List<VaccineManagerDTO> listOfVaccineManagerDTO = new ArrayList<>();
+    private List<VaccineManager> filterVaccineManager(String state, List<VaccineManager> listOfVaccineManger) {
+        List<VaccineManager> vaccineManagers = new ArrayList<>();
 
-        listOfVaccineManger.forEach(item -> {
-            try {
-                VaccineManagerDTO managerDTO = new VaccineManagerDTO();
-                BeanUtils.copyProperties(item, managerDTO);
+        listOfVaccineManger.forEach(vaccineManager -> {
+            VaccineManager manager = new VaccineManager();
+            BeanUtils.copyProperties(vaccineManager, manager);
+            if (vaccineManager.getVaccine() != null) {
+                Optional<Vaccine> vaccine = vaccineClient.getByIdVaccine(vaccineManager.getVaccine().getId());
+                vaccine.ifPresent(manager::setVaccine);
+            }
 
-                Optional<Vaccine> vaccine = vaccineClient.getByIdVaccine(item.getIdVaccine());
-                vaccine.ifPresent(managerDTO::setVaccine);
-
-                Optional<Patient> patient = patientClient.getByIdPatient(item.getIdPatient());
+            if (vaccineManager.getPatient() != null) {
+                Optional<Patient> patient = patientClient.getByIdPatient(vaccineManager.getPatient().getId());
                 String patientState = patient.get().getAddress().getState();
-
                 if (
                         patient.isEmpty()
                                 || (!state.isEmpty()
@@ -223,15 +227,12 @@ public class VaccineManagerService {
                 ) {
                     return;
                 }
-
-                managerDTO.setPatient(patient.get());
-                listOfVaccineManagerDTO.add(managerDTO);
-            } catch (Exception e) {
-                System.out.println(e.getMessage()); // Possível LOG
+                manager.setPatient(patient.get());
             }
+            vaccineManagers.add(manager);
         });
 
-        return listOfVaccineManagerDTO;
+        return vaccineManagers;
     }
 
     private void verifyIfVaccineDateIsBeforeLastVaccinationPlusDays(LocalDate vaccineValidate, LocalDate vaccineDate, LocalDate lastVaccinationPlusDays) throws InvalidVaccineDateException {
@@ -250,30 +251,35 @@ public class VaccineManagerService {
         }
     }
 
-    public List<VaccineManagerDTO> getAllVaccinesByPatientId(String patientId) throws NotFoundException {
-        Optional<List<VaccineManager>> vaccineManagerOptional = vaccineManagerRepository.findAllByIdPatient(patientId);
+    public List<VaccineManager> getAllVaccinesByPatientId(String patientId) throws NotFoundException {
+        Optional<List<VaccineManager>> vaccineManagerOptional = vaccineManagerRepository.findAllByPatientId(patientId);
 
         if (vaccineManagerOptional.isEmpty()) {
             throw new NotFoundException("Paciente não encontrado");
         }
 
-        List<VaccineManagerDTO> listOfVaccineManagerDTO = new ArrayList<>();
+        List<VaccineManager> vaccineManagers = new ArrayList<>();
         vaccineManagerOptional.get().forEach(vaccineManager -> {
-            Optional<Vaccine> vaccineOptional = vaccineClient.getByIdVaccine(vaccineManager.getIdVaccine());
-            Optional<Patient> patientOptional = patientClient.getByIdPatient(vaccineManager.getIdPatient());
+            Optional<Vaccine> vaccineOptional = vaccineClient.getByIdVaccine(vaccineManager.getVaccine().getId());
+            Optional<Patient> patientOptional = patientClient.getByIdPatient(vaccineManager.getPatient().getId());
 
-            listOfVaccineManagerDTO.add(
-                    new VaccineManagerDTO(
+            vaccineManagers.add(
+                    new VaccineManager(
+                        vaccineManager.getCreatedAt(),
+                        vaccineManager.getUpdatedAt(),
                         vaccineManager.getId(),
-                        vaccineManager.getVaccineDate(),
                         patientOptional.get(),
                         vaccineOptional.get(),
                         vaccineManager.getListOfDoses(),
-                        vaccineManager.getNurseProfessional()
+                        vaccineManager.getNurseProfessionals()
                     )
             );
         });
 
-        return listOfVaccineManagerDTO;
+        return vaccineManagers;
+    }
+
+    public void deleteAll() {
+        vaccineManagerRepository.deleteAll();
     }
 }

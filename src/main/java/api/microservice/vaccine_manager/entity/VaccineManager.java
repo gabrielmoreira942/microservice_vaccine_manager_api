@@ -1,42 +1,53 @@
 package api.microservice.vaccine_manager.entity;
 
+import api.microservice.vaccine_manager.entity.util.DatabaseObject;
+import api.microservice.vaccine_manager.service.dto.Patient;
+import api.microservice.vaccine_manager.service.dto.Vaccine;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.PastOrPresent;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class VaccineManager {
+@Document
+public class VaccineManager extends DatabaseObject {
 
     @Id
     private String id;
 
-    @PastOrPresent
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "UTC")
-    private LocalDate vaccineDate;
+    private Patient patient;
 
-    @NotEmpty
-    private String idPatient;
-
-    @NotEmpty
-    private String idVaccine;
+    private Vaccine vaccine;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "UTC")
     private List<LocalDate> listOfDoses = new ArrayList<>();
 
-    @NotNull(message = "Insira o profissional de enfermagem que aplicou a vacina")
-    private NurseProfessional nurseProfessional;
+    private List<NurseProfessional> nurseProfessionals = new ArrayList<>();
 
+    public VaccineManager(LocalDateTime createdAt, LocalDateTime updatedAt, String id, Patient patient, Vaccine vaccine, List<LocalDate> listOfDoses, List<NurseProfessional> nurseProfessionals) {
+        super(createdAt, updatedAt);
+        this.id = id;
+        this.patient = patient;
+        this.vaccine = vaccine;
+        this.listOfDoses = listOfDoses;
+        this.nurseProfessionals = nurseProfessionals;
+    }
+
+    public VaccineManager(String id, Patient patient, Vaccine vaccine, List<LocalDate> listOfDoses, List<NurseProfessional> nurseProfessionals) {
+        this.id = id;
+        this.patient = patient;
+        this.vaccine = vaccine;
+        this.listOfDoses = listOfDoses;
+        this.nurseProfessionals = nurseProfessionals;
+    }
 }
