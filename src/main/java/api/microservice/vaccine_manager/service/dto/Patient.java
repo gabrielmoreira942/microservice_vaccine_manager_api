@@ -1,7 +1,5 @@
-package api.microservice.vaccine_manager.dto;
+package api.microservice.vaccine_manager.service.dto;
 
-import api.microservice.vaccine_manager.entity.Address;
-import api.microservice.vaccine_manager.entity.Contact;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

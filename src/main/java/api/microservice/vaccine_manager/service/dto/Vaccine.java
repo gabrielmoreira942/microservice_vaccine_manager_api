@@ -1,5 +1,6 @@
-package api.microservice.vaccine_manager.dto;
+package api.microservice.vaccine_manager.service.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,6 +20,7 @@ public class Vaccine {
 
     private String batch;
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "UTC")
     private LocalDate validateDate;
 
     private Integer amountOfDose;
