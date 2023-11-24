@@ -3,11 +3,16 @@ package api.microservice.vaccine_manager.handler;
 import api.microservice.vaccine_manager.handler.exceptions.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @ControllerAdvice
@@ -100,6 +105,19 @@ public class CustomExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        Throwable rootCause = ex.getRootCause();
+        if (rootCause instanceof DateTimeParseException) {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("mensagem", "Formato de data inválido. Use o formato 'yyyy-MM-dd'");
+
+            return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+        }
+
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleAllExceptions(Exception ex) {
         if (
@@ -111,7 +129,8 @@ public class CustomExceptionHandler {
             ex instanceof UnequalVaccineManufacturerException ||
             ex instanceof AmountOfVacinationException ||
             ex instanceof UnprocessableEntityException ||
-            ex instanceof ExpiredVaccineException
+            ex instanceof ExpiredVaccineException ||
+            ex instanceof HttpMessageNotReadableException
         ) {
             return null;
         }
