@@ -2,6 +2,7 @@ package api.microservice.vaccine_manager.service;
 
 import api.microservice.vaccine_manager.client.PatientClient;
 import api.microservice.vaccine_manager.client.VaccineClient;
+import api.microservice.vaccine_manager.entity.NurseProfessional;
 import api.microservice.vaccine_manager.entity.VaccineManager;
 import api.microservice.vaccine_manager.handler.exceptions.AmountOfVacinationException;
 import api.microservice.vaccine_manager.handler.exceptions.BadRequestException;
@@ -78,7 +79,9 @@ public class VaccineManagerService {
 
         vaccineManager.getListOfDoses().add(vaccineManagerDTO.getLastDateOfVaccine());
 
-        vaccineManager.getNurseProfessionals().add(vaccineManagerDTO.getNurseProfessional());
+        NurseProfessional nurseProfessional = vaccineManagerDTO.getNurseProfessional();
+        nurseProfessional.setName(nurseProfessional.getName().trim());
+        vaccineManager.getNurseProfessionals().add(nurseProfessional);
 
         return vaccineManagerRepository.insert(vaccineManager);
     }
@@ -142,7 +145,9 @@ public class VaccineManagerService {
         verifyIfVaccineIsUniqueDose(newVaccine, storedVaccineManager, patient, lastAmountOfDoses);
 
         storedVaccineManager.getListOfDoses().add(lastDateOfVaccine);
-        storedVaccineManager.getNurseProfessionals().add(vaccineManagerDTO.getNurseProfessional());
+        NurseProfessional nurseProfessional = vaccineManagerDTO.getNurseProfessional();
+        nurseProfessional.setName(nurseProfessional.getName().trim());
+        storedVaccineManager.getNurseProfessionals().add(nurseProfessional);
         return vaccineManagerRepository.save(storedVaccineManager);
     }
 
