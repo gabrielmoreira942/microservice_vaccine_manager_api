@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+import javax.validation.Valid;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.PastOrPresent;
@@ -28,6 +29,7 @@ public class VaccineManagerDTO {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "UTC")
     private LocalDate lastDateOfVaccine;
 
+    @Valid
     @NotNull(message = "Insira o profissional de enfermagem que aplicou a vacina")
     private NurseProfessional nurseProfessional;
 }
