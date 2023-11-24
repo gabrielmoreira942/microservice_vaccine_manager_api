@@ -21,6 +21,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import javax.validation.Valid;
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/vaccine-manager")
@@ -90,5 +91,10 @@ public class VaccineManagerController {
     public ResponseEntity<Void> deleteAll() {
         vaccineManagerService.deleteAll();
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/states")
+    public ResponseEntity<Set<String>> getAllStatesRegistered() {
+        return ResponseEntity.ok().body(vaccineManagerService.findAllStatesRegistered());
     }
 }

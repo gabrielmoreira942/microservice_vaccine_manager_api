@@ -12,6 +12,7 @@ import api.microservice.vaccine_manager.handler.exceptions.UnequalVaccineManufac
 import api.microservice.vaccine_manager.handler.exceptions.UniqueDoseVaccineException;
 import api.microservice.vaccine_manager.handler.exceptions.UnprocessableEntityException;
 import api.microservice.vaccine_manager.repository.VaccineManagerRepository;
+import api.microservice.vaccine_manager.service.dto.Address;
 import api.microservice.vaccine_manager.service.dto.Patient;
 import api.microservice.vaccine_manager.service.dto.Vaccine;
 import api.microservice.vaccine_manager.service.dto.VaccineManagerDTO;
@@ -27,7 +28,10 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -254,6 +258,18 @@ public class VaccineManagerService {
         });
 
         return vaccineManagers;
+    }
+
+    public Set<String> findAllStatesRegistered() {
+
+        return vaccineManagerRepository.findAllStates().stream()
+                .map(vaccineManager -> Optional.ofNullable(vaccineManager)
+                        .map(VaccineManager::getPatient)
+                        .map(Patient::getAddress)
+                        .map(Address::getState)
+                        .orElse(null))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     public void deleteAll() {
