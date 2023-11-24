@@ -163,6 +163,7 @@ public class VaccineManagerService {
         VaccineManager vaccineManager = vaccineManagerOptional.get();
 
         int lastVaccineDose = vaccineManager.getListOfDoses().size();
+        int nurseProfessional = vaccineManager.getNurseProfessionals().size();
 
         if (lastVaccineDose == 0) {
             throw new BadRequestException("Você não possui registros a serem removidos.");
@@ -172,6 +173,7 @@ public class VaccineManagerService {
         }
 
         vaccineManager.getListOfDoses().remove(lastVaccineDose - 1);
+        vaccineManager.getNurseProfessionals().remove(nurseProfessional - 1);
 
         return vaccineManagerRepository.save(vaccineManager);
     }
